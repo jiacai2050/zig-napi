@@ -1,0 +1,18 @@
+.{
+    .name = .zig_napi,
+    .version = "0.1.0",
+    .fingerprint = 0x6093bdd28d1ad432,
+    .paths = .{
+        "src",
+        "build.zig",
+        "build.zig.zon",
+        "LICENSE",
+    },
+    .dependencies = .{
+        .napi_headers = .{
+            // https://github.com/nodejs/node-api-headers/releases/tag/v1.5.0
+            .url = "https://github.com/nodejs/node-api-headers/archive/refs/tags/v1.5.0.zip",
+            .hash = "N-V-__8AAASNAQA0UI0mvQk4LyFEhdFuFBPgH8HSokdFFpnz",
+        },
+    },
+}

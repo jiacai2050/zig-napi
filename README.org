@@ -1,0 +1,13 @@
+#+TITLE: zig-napi
+#+DATE: 2025-06-10T21:55:37+0800
+#+LASTMOD: 2025-06-10T22:24:17+0800
+#+AUTHOR: Jiacai Liu
+
+[[https://nodejs.org/api/n-api.html][Node-API]] bindings for Zig.
+
+Tested with Zig 0.14.1
+
+* Learning resources
+- [[https://github.com/ziglang/zig/issues/3000][Zig and Node.js N-API example · Issue #3000 · ziglang/zig]]
+- [[https://github.com/evanwashere/napi.zig/blob/master/src/napi/napi.zig][napi.zig/src/napi/napi.zig at master · evanwashere/napi.zig]]
+- [[https://ziggit.dev/t/cross-compiling-a-node-js-addon-for-windows-macos/1935][Cross compiling a Node.js addon for windows / macOS - Help - Ziggit]]
