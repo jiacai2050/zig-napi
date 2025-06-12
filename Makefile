@@ -1,12 +1,12 @@
 OUT_DIR = zig-out
 
-.PHONY: build test clean
-
-build:
-	zig build
+.PHONY: build test lint clean
 
 test: build
 	node index.js
+
+build:
+	zig build
 
 lint:
 	zig fmt --check .

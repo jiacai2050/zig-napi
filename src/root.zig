@@ -19,8 +19,8 @@ pub const Env = struct {
             .@"fn" => |fn_info| fn_info,
             else => @compileError("`func` must be a function"),
         };
-        if (fn_info.params.len == 0 or fn_info.params[0].type != Env) @compileError("Function requires an `Env`-type parameter as its first parameter.");
-        if (comptime !isReturnValue(fn_info)) @compileError("Function must return `Value` or `!Value` type");
+        if (!(fn_info.params.len == 1 and fn_info.params[0].type == Env)) @compileError("Function requires one argument: (Env).");
+        if (comptime !(isReturnErrValue(fn_info) or isReturnValue(fn_info))) @compileError("Function must return `Value` or `!Value` type");
 
         var function: c.napi_value = undefined;
         try self.ffi(c.napi_create_function, .{
@@ -30,11 +30,10 @@ pub const Env = struct {
                 fn callback(env: c.napi_env, info: c.napi_callback_info) callconv(.C) Value {
                     // TODO: support extracting parameters from info
                     _ = info;
-                    const self_env = Env{ .c_handle = env };
-                    return if (fn_info.return_type.? == Value)
-                        @call(.auto, func, .{self_env})
+                    return if (comptime isReturnValue(fn_info))
+                        func(Env{ .c_handle = env })
                     else
-                        @call(.auto, func, .{self_env}) catch |err| {
+                        func(Env{ .c_handle = env }) catch |err| {
                             _ = c.napi_throw_error(env, null, @errorName(err));
                             return null;
                         };
@@ -87,13 +86,27 @@ pub const Env = struct {
     }
 };
 
-pub fn register_module(comptime Module: type) void {
+pub fn registerModule(comptime Module: type) void {
     const Closure = struct {
         fn init(env: c.napi_env, exports: c.napi_value) callconv(.C) Value {
             if (!@hasDecl(Module, "init")) @compileError("zig-napi module must provide function `init`");
-            Module.init(Env{ .c_handle = env }, exports);
 
-            return exports;
+            const fn_info = switch (@typeInfo(@TypeOf(Module.init))) {
+                .@"fn" => |fn_info| fn_info,
+                else => @compileError("`init` field must be a function"),
+            };
+            if (!(fn_info.params.len == 2 and fn_info.params[0].type == Env and fn_info.params[1].type == Value)) @compileError("`init` function requires two arguments: (Env, Value).");
+
+            if (comptime isReturnValue(fn_info)) {
+                return Module.init(Env{ .c_handle = env }, exports);
+            } else if (comptime isReturnErrValue(fn_info)) {
+                return Module.init(Env{ .c_handle = env }, exports) catch |e| {
+                    std.log.err("Init zig-napi failed, err: {any}", .{e});
+                    return null;
+                };
+            } else {
+                @compileError("`init` function must return `Value` or `!Value` type");
+            }
         }
     };
 
@@ -102,9 +115,15 @@ pub fn register_module(comptime Module: type) void {
 
 fn isReturnValue(fn_info: std.builtin.Type.Fn) bool {
     if (fn_info.return_type) |ret_type| {
-        if (ret_type == Value) {
-            return true;
-        } else switch (@typeInfo(ret_type)) {
+        return ret_type == Value;
+    }
+
+    return false;
+}
+
+fn isReturnErrValue(fn_info: std.builtin.Type.Fn) bool {
+    if (fn_info.return_type) |ret_type| {
+        switch (@typeInfo(ret_type)) {
             .error_union => |err_union| return err_union.payload == Value,
             else => {},
         }

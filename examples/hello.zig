@@ -3,7 +3,7 @@ const napi = @import("zig-napi");
 
 // Every module needs to call `register_module`.
 comptime {
-    napi.register_module(@This());
+    napi.registerModule(@This());
 }
 
 fn hello(e: napi.Env) !napi.Value {
@@ -11,7 +11,9 @@ fn hello(e: napi.Env) !napi.Value {
 }
 
 // napi module entrypoint
-pub fn init(env: napi.Env, exports: napi.Value) void {
-    const function = env.createFunction("hello", hello) catch unreachable;
-    env.setNamedProperty(exports, "hello", function) catch unreachable;
+pub fn init(env: napi.Env, exports: napi.Value) !napi.Value {
+    const function = try env.createFunction("hello", hello);
+    try env.setNamedProperty(exports, "hello", function);
+
+    return exports;
 }
