@@ -27,6 +27,9 @@ jobs:
       - uses: mlugg/setup-zig@v2
         with:
           version: ${{ matrix.zig-version }}
+      - name: Run lint
+        run: |
+          make lint
       - name: Run tests
         run: |
           make test

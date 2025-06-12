@@ -19,18 +19,8 @@ pub const Env = struct {
             .@"fn" => |fn_info| fn_info,
             else => @compileError("`func` must be a function"),
         };
-        if (fn_info.params.len == 0 || fn_info.params[0].type != Env) @compileError("The function requires an `Env`-type parameter as its first parameter
-.");
-        if (fn_info.return_type) |ret_type| {
-            if (ret_type == Value) {
-                // `Value` is a valid return type; no error.
-            } else switch (@typeInfo(ret_type)) {
-                .error_union => |err_union| if (err_union.payload != Value) {
-                    @compileError("Expected a !Value type");
-                },
-                else => @compileError("Function must return `Value` or `!Value` type"),
-            }
-        } else @compileError("Function must return `Value` or `!Value` type");
+        if (fn_info.params.len == 0 or fn_info.params[0].type != Env) @compileError("Function requires an `Env`-type parameter as its first parameter.");
+        if (comptime !isReturnValue(fn_info)) @compileError("Function must return `Value` or `!Value` type");
 
         var function: c.napi_value = undefined;
         try self.ffi(c.napi_create_function, .{
@@ -38,7 +28,7 @@ pub const Env = struct {
             name.len,
             struct {
                 fn callback(env: c.napi_env, info: c.napi_callback_info) callconv(.C) Value {
-                    // TODO: support extra parameters from info
+                    // TODO: support extracting parameters from info
                     _ = info;
                     const self_env = Env{ .c_handle = env };
                     return if (fn_info.return_type.? == Value)
@@ -87,9 +77,9 @@ pub const Env = struct {
         }
 
         const msg = if (err_info) |info|
-            std.mem.span(info.*.error_message)
+            if (info.*.error_message == null) "Unknown error occurred" else std.mem.span(info.*.error_message)
         else
-            "Unknown error";
+            "Unknown error occurred";
 
         if (c.napi_throw_error(self.c_handle, null, msg) != c.napi_ok) {
             return error.ThrowError;
@@ -108,4 +98,17 @@ pub fn register_module(comptime Module: type) void {
     };
 
     @export(&Closure.init, .{ .name = "napi_register_module_v1" });
+}
+
+fn isReturnValue(fn_info: std.builtin.Type.Fn) bool {
+    if (fn_info.return_type) |ret_type| {
+        if (ret_type == Value) {
+            return true;
+        } else switch (@typeInfo(ret_type)) {
+            .error_union => |err_union| return err_union.payload == Value,
+            else => {},
+        }
+    }
+
+    return false;
 }
