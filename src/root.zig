@@ -102,6 +102,7 @@ pub fn registerModule(comptime Module: type) void {
             } else if (comptime isReturnErrValue(fn_info)) {
                 return Module.init(Env{ .c_handle = env }, exports) catch |e| {
                     std.log.err("Init zig-napi failed, err: {any}", .{e});
+                    _ = c.napi_throw_error(env, null, @errorName(e));
                     return null;
                 };
             } else {
