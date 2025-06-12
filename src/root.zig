@@ -19,8 +19,8 @@ pub const Env = struct {
             .@"fn" => |fn_info| fn_info,
             else => @compileError("`func` must be a function"),
         };
-        if (fn_info.params.len == 0) @compileError("Function must have at least one parameter (the napi.Env)");
-        if (fn_info.params[0].type != Env) @compileError("First parameter must be of type `Env`");
+        if (fn_info.params.len == 0 || fn_info.params[0].type != Env) @compileError("The function requires an `Env`-type parameter as its first parameter
+.");
         if (fn_info.return_type) |ret_type| {
             if (ret_type != Value)
                 switch (@typeInfo(ret_type)) {
