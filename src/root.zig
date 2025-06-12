@@ -86,21 +86,21 @@ pub const Env = struct {
     }
 };
 
-pub fn registerModule(comptime Module: type) void {
+/// `init_fn` is a function that will be called when the module is initialized.
+/// It should have the signature `fn(env: Env, exports: Value) !Value` or `fn(env: Env, exports: Value) Value`.
+pub fn registerModule(init_fn: anytype) void {
     const Closure = struct {
         fn init(env: c.napi_env, exports: c.napi_value) callconv(.C) Value {
-            if (!@hasDecl(Module, "init")) @compileError("zig-napi module must provide function `init`");
-
-            const fn_info = switch (@typeInfo(@TypeOf(Module.init))) {
+            const fn_info = switch (@typeInfo(@TypeOf(init_fn))) {
                 .@"fn" => |fn_info| fn_info,
-                else => @compileError("`init` field must be a function"),
+                else => @compileError("`init_fn` must be a function"),
             };
             if (!(fn_info.params.len == 2 and fn_info.params[0].type == Env and fn_info.params[1].type == Value)) @compileError("`init` function requires two arguments: (Env, Value).");
 
             if (comptime isReturnValue(fn_info)) {
-                return Module.init(Env{ .c_handle = env }, exports);
+                return init_fn(Env{ .c_handle = env }, exports);
             } else if (comptime isReturnErrValue(fn_info)) {
-                return Module.init(Env{ .c_handle = env }, exports) catch |e| {
+                return init_fn(Env{ .c_handle = env }, exports) catch |e| {
                     std.log.err("Init zig-napi failed, err: {any}", .{e});
                     _ = c.napi_throw_error(env, null, @errorName(e));
                     return null;

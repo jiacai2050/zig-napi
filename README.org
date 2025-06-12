@@ -1,11 +1,38 @@
 #+TITLE: zig-napi
 #+DATE: 2025-06-10T21:55:37+0800
-#+LASTMOD: 2025-06-10T22:24:17+0800
+#+LASTMOD: 2025-06-12T21:24:59+0800
 #+AUTHOR: Jiacai Liu
+
+[[https://github.com/jiacai2050/zig-napi/actions/workflows/CI.yml][https://github.com/jiacai2050/zig-napi/actions/workflows/CI.yml/badge.svg]]
+[[https://img.shields.io/badge/zig%20version-0.14.1-blue.svg]]
 
 [[https://nodejs.org/api/n-api.html][Node-API]] bindings for Zig.
 
-Tested with Zig 0.14.1
+#+begin_src bash :results verbatim :exports results :wrap src zig
+cat examples/hello.zig
+#+end_src
+
+#+RESULTS:
+#+begin_src zig
+const std = @import("std");
+const napi = @import("napi");
+
+// Every napi module needs to call `registerModule` to register it with the N-API runtime.
+comptime {
+    napi.registerModule(init);
+}
+
+fn hello(e: napi.Env) !napi.Value {
+    return try e.createStringUtf8("Hello from Zig!");
+}
+
+pub fn init(env: napi.Env, exports: napi.Value) !napi.Value {
+    const function = try env.createFunction("hello", hello);
+    try env.setNamedProperty(exports, "hello", function);
+
+    return exports;
+}
+#+end_src
 
 * Learning resources
 - [[https://github.com/ziglang/zig/issues/3000][Zig and Node.js N-API example · Issue #3000 · ziglang/zig]]

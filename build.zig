@@ -28,7 +28,7 @@ pub fn build(b: *Build) !void {
         }),
         .linkage = .dynamic,
     });
-    example.root_module.addImport("zig-napi", napi_module);
+    example.root_module.addImport("napi", napi_module);
     example.linker_allow_shlib_undefined = true;
 
     const install_lib = b.addInstallArtifact(example, .{

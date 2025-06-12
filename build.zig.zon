@@ -1,7 +1,7 @@
 .{
-    .name = .zig_napi,
+    .name = .napi,
     .version = "0.1.0",
-    .fingerprint = 0x6093bdd28d1ad432,
+    .fingerprint = 0xa8f95e310539e3c0,
     .paths = .{
         "src",
         "build.zig",
