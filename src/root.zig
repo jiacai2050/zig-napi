@@ -22,13 +22,14 @@ pub const Env = struct {
         if (fn_info.params.len == 0 || fn_info.params[0].type != Env) @compileError("The function requires an `Env`-type parameter as its first parameter
 .");
         if (fn_info.return_type) |ret_type| {
-            if (ret_type != Value)
-                switch (@typeInfo(ret_type)) {
-                    .error_union => |err_union| if (err_union.payload != Value) @compileError("Expected a !Value type"),
-                    else => @compileError("Function must return `Value` or `!Value` type"),
-                }
-            else
-                @compileError("Function must return `Value` or `!Value` type");
+            if (ret_type == Value) {
+                // `Value` is a valid return type; no error.
+            } else switch (@typeInfo(ret_type)) {
+                .error_union => |err_union| if (err_union.payload != Value) {
+                    @compileError("Expected a !Value type");
+                },
+                else => @compileError("Function must return `Value` or `!Value` type"),
+            }
         } else @compileError("Function must return `Value` or `!Value` type");
 
         var function: c.napi_value = undefined;
@@ -99,7 +100,7 @@ pub const Env = struct {
 pub fn register_module(comptime Module: type) void {
     const Closure = struct {
         fn init(env: c.napi_env, exports: c.napi_value) callconv(.C) Value {
-            if (!@hasDecl(Module, "init")) @compileError("zig-napi module must provider function `init`");
+            if (!@hasDecl(Module, "init")) @compileError("zig-napi module must provide function `init`");
             Module.init(Env{ .c_handle = env }, exports);
 
             return exports;
