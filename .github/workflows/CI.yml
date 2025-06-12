@@ -6,12 +6,18 @@ on:
     paths:
       - '**.zig'
       - '**.yml'
+      - '**.js'
+      - 'Makefile'
+      - 'test/**'
   push:
     branches:
       - main
     paths:
       - '**.zig'
       - '**.yml'
+      - '**.js'
+      - 'Makefile'
+      - 'test/**'
 
 jobs:
   ci:
@@ -27,9 +33,11 @@ jobs:
       - uses: mlugg/setup-zig@v2
         with:
           version: ${{ matrix.zig-version }}
+
       - name: Run lint
         run: |
           make lint
+
       - name: Run tests
         run: |
           make test

@@ -35,4 +35,12 @@ pub fn build(b: *Build) !void {
         .dest_sub_path = "hello.node",
     });
     b.getInstallStep().dependOn(&install_lib.step);
+
+    // Add JavaScript tests that run after build
+    const js_tests = b.addSystemCommand(&.{ "node", "test/run_tests.js" });
+    js_tests.step.dependOn(&install_lib.step);
+
+    // Create test step that runs both Zig and JavaScript tests
+    const test_step = b.step("test", "Run all tests");
+    test_step.dependOn(&js_tests.step);
 }
