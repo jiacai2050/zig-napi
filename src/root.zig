@@ -1,16 +1,29 @@
 const std = @import("std");
-const c = @cImport({
-    @cInclude("node_api.h");
-});
-
-pub const Value = c.napi_value;
+const c = @import("c.zig").c;
+const callNodeApi = @import("c.zig").callNodeApi;
+pub const Value = @import("c.zig").Value;
 
 pub const Env = struct {
     c_handle: c.napi_env,
 
+    pub fn getValueStringUtf8(self: Env, value: Value, out_str: []u8) !usize {
+        // Number of bytes copied into the buffer, excluding the null terminator.
+        var len: usize = 0;
+        try callNodeApi(
+            self.c_handle,
+            c.napi_get_value_string_utf8,
+            .{ value, out_str.ptr, out_str.len, &len },
+        );
+        return len;
+    }
+
     pub fn createStringUtf8(self: Env, str: []const u8) !Value {
         var result: c.napi_value = undefined;
-        try self.ffi(c.napi_create_string_utf8, .{ str.ptr, str.len, &result });
+        try callNodeApi(
+            self.c_handle,
+            c.napi_create_string_utf8,
+            .{ str.ptr, str.len, &result },
+        );
         return result;
     }
 
@@ -19,75 +32,69 @@ pub const Env = struct {
             .@"fn" => |fn_info| fn_info,
             else => @compileError("`func` must be a function"),
         };
-        if (!(fn_info.params.len == 1 and fn_info.params[0].type == Env)) @compileError("Function requires one argument: (Env).");
-        if (comptime !(isReturnErrValue(fn_info) or isReturnValue(fn_info))) @compileError("Function must return `Value` or `!Value` type");
+        if (fn_info.params.len == 0) @compileError("Function requires at least one parameters.");
+        if (fn_info.params[0].type != Env) @compileError("The first parameters of function must be `Env`.");
+        inline for (fn_info.params[1..]) |param| {
+            if (param.type != Value) @compileError("The rest parameters of function must be of type `Value`.");
+        }
+        const num_params = fn_info.params.len - 1;
 
         var function: c.napi_value = undefined;
-        try self.ffi(c.napi_create_function, .{
-            name.ptr,
-            name.len,
-            struct {
-                fn callback(env: c.napi_env, info: c.napi_callback_info) callconv(.C) Value {
-                    // TODO: support extracting parameters from info
-                    _ = info;
-                    return if (comptime isReturnValue(fn_info))
-                        func(Env{ .c_handle = env })
-                    else
-                        func(Env{ .c_handle = env }) catch |err| {
+        try callNodeApi(
+            self.c_handle,
+            c.napi_create_function,
+            .{
+                name.ptr,
+                name.len,
+                struct {
+                    fn callback(env: c.napi_env, info: c.napi_callback_info) callconv(.C) Value {
+                        var argc: usize = num_params;
+                        var argv: [num_params]Value = undefined;
+                        callNodeApi(
+                            env,
+                            c.napi_get_cb_info,
+                            .{ info, &argc, &argv, null, null },
+                        ) catch |err| {
                             _ = c.napi_throw_error(env, null, @errorName(err));
                             return null;
                         };
-                }
-            }.callback,
-            null,
-            &function,
-        });
+                        if (argc != num_params) {
+                            _ = c.napi_throw_error(env, null, std.fmt.comptimePrint("Incorrect number of arguments, expected {d}", .{num_params}));
+                            return null;
+                        }
+                        var full_args: std.meta.ArgsTuple(@TypeOf(func)) = undefined;
+                        full_args[0] = Env{ .c_handle = env };
+                        inline for (argv, 1..) |arg, i| {
+                            full_args[i] = arg;
+                        }
+                        return if (comptime isReturnValue(fn_info))
+                            @call(.auto, func, full_args)
+                        else
+                            @call(.auto, func, full_args) catch |err| {
+                                _ = c.napi_throw_error(env, null, @errorName(err));
+                                return null;
+                            };
+                    }
+                }.callback,
+                null,
+                &function,
+            },
+        );
         return function;
     }
 
     pub fn setNamedProperty(self: Env, exports: Value, name: [:0]const u8, prop: Value) !void {
-        try self.ffi(c.napi_set_named_property, .{ exports, name.ptr, prop });
-    }
-    /// `ffi` is a convenience function to call C functions from Zig.
-    /// It will automatically pass the `napi_env` as the first argument to the C function, and it will handle the error checking for you.
-    pub fn ffi(self: Env, c_func: anytype, args: anytype) !void {
-        var ffi_args: std.meta.ArgsTuple(@TypeOf(c_func)) = undefined;
-        ffi_args[0] = self.c_handle;
-        inline for (args, 1..) |arg, i| {
-            ffi_args[i] = arg;
-        }
-
-        if (@call(.auto, c_func, ffi_args) == c.napi_ok) {
-            return;
-        }
-
-        var err_info: [*c]const c.napi_extended_error_info = null;
-        if (c.napi_get_last_error_info(self.c_handle, &err_info) != c.napi_ok) {
-            return error.GetLastError;
-        }
-
-        var is_pending: bool = undefined;
-        if (c.napi_is_exception_pending(self.c_handle, &is_pending) != c.napi_ok) {
-            return error.IsExceptionPending;
-        }
-        // If an exception is already pending, don't rethrow it
-        if (is_pending) {
-            return;
-        }
-
-        const msg = if (err_info) |info|
-            if (info.*.error_message == null) "Unknown error occurred" else std.mem.span(info.*.error_message)
-        else
-            "Unknown error occurred";
-
-        if (c.napi_throw_error(self.c_handle, null, msg) != c.napi_ok) {
-            return error.ThrowError;
-        }
+        try callNodeApi(
+            self.c_handle,
+            c.napi_set_named_property,
+            .{ exports, name.ptr, prop },
+        );
     }
 };
 
 /// `init_fn` is a function that will be called when the module is initialized.
-/// It should have the signature `fn(env: Env, exports: Value) !Value` or `fn(env: Env, exports: Value) Value`.
+/// It should have the signature `fn(env: Env, exports: Value)`
+/// It can return `Value` or `!Value`.
 pub fn registerModule(init_fn: anytype) void {
     const Closure = struct {
         fn init(env: c.napi_env, exports: c.napi_value) callconv(.C) Value {
