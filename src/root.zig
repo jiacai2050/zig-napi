@@ -135,7 +135,7 @@ pub const Env = struct {
                         callNodeApi(
                             env,
                             c.napi_get_cb_info,
-                            .{ info, &argc, argv.ptr, null, null },
+                            .{ info, &argc, &argv, null, null },
                         ) catch |err| {
                             _ = c.napi_throw_error(env, null, @errorName(err));
                             return null;
