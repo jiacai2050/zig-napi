@@ -114,8 +114,8 @@ pub const Env = struct {
             .@"fn" => |fn_info| fn_info,
             else => @compileError("`func` must be a function"),
         };
-        if (fn_info.params.len == 0) @compileError("Function requires at least one parameters.");
-        if (fn_info.params[0].type != Env) @compileError("The first parameters of function must be `Env`.");
+        if (fn_info.params.len == 0) @compileError("Function requires at least one parameter.");
+        if (fn_info.params[0].type != Env) @compileError("The first parameter of function must be `Env`.");
         inline for (fn_info.params[1..]) |param| {
             if (param.type != Value) @compileError("The rest parameters of function must be of type `Value`.");
         }
@@ -135,7 +135,7 @@ pub const Env = struct {
                         callNodeApi(
                             env,
                             c.napi_get_cb_info,
-                            .{ info, &argc, &argv, null, null },
+                            .{ info, &argc, argv.ptr, null, null },
                         ) catch |err| {
                             _ = c.napi_throw_error(env, null, @errorName(err));
                             return null;
