@@ -3,8 +3,50 @@ const c = @import("c.zig").c;
 const callNodeApi = @import("c.zig").callNodeApi;
 pub const Value = @import("c.zig").Value;
 
+/// Env is a wrapper around the Node-API environment handle (`napi_env`).
+/// It provides methods to interact with the Node-API, such as type conversions between Zig and JavaScript values.
 pub const Env = struct {
     c_handle: c.napi_env,
+
+    pub fn getValueDouble(self: Env, value: Value) !f64 {
+        var result: f64 = undefined;
+        try callNodeApi(
+            self.c_handle,
+            c.napi_get_value_double,
+            .{ value, &result },
+        );
+        return result;
+    }
+
+    pub fn getValueInt64(self: Env, value: Value) !i64 {
+        var result: i64 = undefined;
+        try callNodeApi(
+            self.c_handle,
+            c.napi_get_value_int64,
+            .{ value, &result },
+        );
+        return result;
+    }
+
+    pub fn getValueUint32(self: Env, value: Value) !u32 {
+        var result: u32 = undefined;
+        try callNodeApi(
+            self.c_handle,
+            c.napi_get_value_uint32,
+            .{ value, &result },
+        );
+        return result;
+    }
+
+    pub fn getValueInt32(self: Env, value: Value) !i32 {
+        var result: i32 = undefined;
+        try callNodeApi(
+            self.c_handle,
+            c.napi_get_value_int32,
+            .{ value, &result },
+        );
+        return result;
+    }
 
     pub fn getValueStringUtf8(self: Env, value: Value, out_str: []u8) !usize {
         // Number of bytes copied into the buffer, excluding the null terminator.
@@ -17,8 +59,48 @@ pub const Env = struct {
         return len;
     }
 
+    pub fn createDouble(self: Env, num: f64) !Value {
+        var result: Value = undefined;
+        try callNodeApi(
+            self.c_handle,
+            c.napi_create_double,
+            .{ num, &result },
+        );
+        return result;
+    }
+
+    pub fn createInt64(self: Env, num: i64) !Value {
+        var result: Value = undefined;
+        try callNodeApi(
+            self.c_handle,
+            c.napi_create_int64,
+            .{ num, &result },
+        );
+        return result;
+    }
+
+    pub fn createUint32(self: Env, num: u32) !Value {
+        var result: Value = undefined;
+        try callNodeApi(
+            self.c_handle,
+            c.napi_create_uint32,
+            .{ num, &result },
+        );
+        return result;
+    }
+
+    pub fn createInt32(self: Env, num: i32) !Value {
+        var result: Value = undefined;
+        try callNodeApi(
+            self.c_handle,
+            c.napi_create_int32,
+            .{ num, &result },
+        );
+        return result;
+    }
+
     pub fn createStringUtf8(self: Env, str: []const u8) !Value {
-        var result: c.napi_value = undefined;
+        var result: Value = undefined;
         try callNodeApi(
             self.c_handle,
             c.napi_create_string_utf8,
