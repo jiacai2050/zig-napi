@@ -22,7 +22,7 @@ pub fn build(b: *Build) !void {
     const example = b.addLibrary(.{
         .name = "hello",
         .root_module = b.createModule(.{
-            .root_source_file = b.path("examples/hello.zig"),
+            .root_source_file = b.path("examples/basic.zig"),
             .optimize = optimize,
             .target = target,
         }),
@@ -32,7 +32,7 @@ pub fn build(b: *Build) !void {
     example.linker_allow_shlib_undefined = true;
 
     const install_lib = b.addInstallArtifact(example, .{
-        .dest_sub_path = "hello.node",
+        .dest_sub_path = "basic.node",
     });
     b.getInstallStep().dependOn(&install_lib.step);
 }

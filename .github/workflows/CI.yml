@@ -6,12 +6,16 @@ on:
     paths:
       - '**.zig'
       - '**.yml'
+      - 'Makefile'
+      - 'tests/**'
   push:
     branches:
       - main
     paths:
       - '**.zig'
       - '**.yml'
+      - 'Makefile'
+      - 'tests/**'
 
 jobs:
   ci:
@@ -21,15 +25,21 @@ jobs:
       fail-fast: false
       matrix:
         os: [ubuntu-latest, macos-latest]
-        zig-version: [0.14.1]
+        zig-version: [0.14.1, master]
     steps:
       - uses: actions/checkout@v4
       - uses: mlugg/setup-zig@v2
         with:
           version: ${{ matrix.zig-version }}
+
+      - name: Install dependencies
+        run: |
+          make deps
+
       - name: Run lint
         run: |
           make lint
+
       - name: Run tests
         run: |
           make test
