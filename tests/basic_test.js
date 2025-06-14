@@ -53,4 +53,8 @@ describe('Basic tests...', () => {
   it('add()', () => {
     assert.strictEqual(30, addon.add(10, 20));
   });
+
+  it('scope_demo()', () => {
+    assert.strictEqual(undefined, addon.scope_demo());
+  });
 });

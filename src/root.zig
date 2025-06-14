@@ -111,6 +111,16 @@ pub const Env = struct {
         return result;
     }
 
+    pub fn createObject(self: Env) !Value {
+        var result: Value = undefined;
+        try callNodeApi(
+            self.c_handle,
+            c.napi_create_object,
+            .{&result},
+        );
+        return result;
+    }
+
     pub fn createFunction(self: Env, name: []const u8, func: anytype) !Value {
         const fn_info = switch (@typeInfo(@TypeOf(func))) {
             .@"fn" => |fn_info| fn_info,
@@ -174,6 +184,15 @@ pub const Env = struct {
             .{ exports, name.ptr, prop },
         );
     }
+
+    pub fn openScope(self: Env) !scope(false) {
+        return try scope(false).init(self);
+    }
+
+    /// Objects in EscapeScope can be promoted to the outer scope.
+    pub fn openEscapeScope(self: Env) !scope(true) {
+        return try scope(true).init(self);
+    }
 };
 
 /// `init_fn` is a function that will be called when the module is initialized.
@@ -203,6 +222,33 @@ pub fn registerModule(init_fn: anytype) void {
     };
 
     @export(&Closure.init, .{ .name = "napi_register_module_v1" });
+}
+
+fn scope(comptime escape: bool) type {
+    return struct {
+        env: Env,
+        c_handle: if (escape) c.napi_escapable_handle_scope else c.napi_handle_scope,
+
+        const Self = @This();
+        pub fn init(env: Env) !Self {
+            var self = Self{ .c_handle = undefined, .env = env };
+            try callNodeApi(
+                env.c_handle,
+                if (escape) c.napi_open_escapable_handle_scope else c.napi_open_handle_scope,
+                .{&self.c_handle},
+            );
+
+            return self;
+        }
+
+        pub fn deinit(self: Self) !void {
+            try callNodeApi(
+                self.env.c_handle,
+                if (escape) c.napi_close_escapable_handle_scope else c.napi_close_handle_scope,
+                .{self.c_handle},
+            );
+        }
+    };
 }
 
 fn isReturnValue(fn_info: std.builtin.Type.Fn) bool {
