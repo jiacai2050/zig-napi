@@ -30,7 +30,9 @@ fn scope_demo(e: napi.Env) !napi.Value {
     for (0..100000) |i| {
         const scope = try e.openScope();
         defer scope.deinit() catch unreachable;
-        _ = try e.createDouble(@floatFromInt(i));
+        const value = try e.createDouble(@floatFromInt(i));
+        // Do something with value, and it will get freed when scope is deinited.
+        _ = value;
     }
     return null;
 }
