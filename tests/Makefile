@@ -1,12 +1,12 @@
 
 .PHONY: write lint deps
 
-write:
-	npx prettier . --write
-
 lint:
 	npx eslint
 	npx prettier . --check
+
+write:
+	npx prettier . --write
 
 deps:
 	npm i

@@ -26,8 +26,9 @@ const testFiles = fs
   .map((file) => path.join(testDir, file));
 
 if (testFiles.length === 0) {
-  console.log('⚠️  No test files found in test/ directory');
-  console.log('Looking for files ending with "_test.js" or ".test.js"');
+  console.log(
+    '⚠️  No test files found, make sure your test files ending with "_test.js"',
+  );
   process.exit(0);
 }
 
