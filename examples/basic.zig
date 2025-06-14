@@ -13,8 +13,11 @@ fn hello(e: napi.Env) !napi.Value {
 fn greeting(e: napi.Env, who: napi.Value) !napi.Value {
     var buf: [64]u8 = undefined;
     const len = try e.getValueStringUtf8(who, &buf);
-    std.debug.print("Hello, {s}!\n", .{buf[0..len]});
-    return null;
+    const allocator = std.heap.page_allocator;
+    const message = try std.fmt.allocPrint(allocator, "Hello {s}", .{buf[0..len]});
+    defer allocator.free(message);
+
+    return try e.createStringUtf8(message);
 }
 
 fn add(e: napi.Env, n1: napi.Value, n2: napi.Value) !napi.Value {

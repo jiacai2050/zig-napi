@@ -39,7 +39,7 @@ describe('Basic tests...', () => {
   it('greeting()', () => {
     assert.doesNotThrow(() => {
       const result = addon.greeting('Jack');
-      assert.strictEqual(result, undefined);
+      assert.strictEqual(result, 'Hello Jack');
     });
 
     assert.throws(

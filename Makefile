@@ -1,9 +1,12 @@
 OUT_DIR = zig-out
 
-.PHONY: build test lint deps clean
+.PHONY: build test example lint deps clean
 
 test: build
 	node tests/runner.js
+
+example: build
+	node examples/basic.js
 
 build:
 	zig build

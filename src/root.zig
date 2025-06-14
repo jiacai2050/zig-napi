@@ -99,6 +99,8 @@ pub const Env = struct {
         return result;
     }
 
+    /// Creates a JavaScript string value from a UTF8-encoded slice.
+    /// The native string is copied.
     pub fn createStringUtf8(self: Env, str: []const u8) !Value {
         var result: Value = undefined;
         try callNodeApi(

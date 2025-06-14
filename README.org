@@ -1,6 +1,6 @@
 #+TITLE: zig-napi
 #+DATE: 2025-06-10T21:55:37+0800
-#+LASTMOD: 2025-06-14T11:12:12+0800
+#+LASTMOD: 2025-06-14T11:56:44+0800
 #+AUTHOR: Jiacai Liu
 
 [[https://github.com/jiacai2050/zig-napi/actions/workflows/CI.yml][https://github.com/jiacai2050/zig-napi/actions/workflows/CI.yml/badge.svg]]
@@ -8,7 +8,8 @@
 
 [[https://nodejs.org/api/n-api.html][Node-API]] bindings for Zig.
 
-#+begin_src bash :results verbatim :exports results :wrap src zig
+* Examples
+#+begin_src bash :results verbatim :exports both :wrap src zig
 cat examples/basic.zig
 #+end_src
 
@@ -29,8 +30,11 @@ fn hello(e: napi.Env) !napi.Value {
 fn greeting(e: napi.Env, who: napi.Value) !napi.Value {
     var buf: [64]u8 = undefined;
     const len = try e.getValueStringUtf8(who, &buf);
-    std.debug.print("Hello, {s}!\n", .{buf[0..len]});
-    return null;
+    const allocator = std.heap.page_allocator;
+    const message = try std.fmt.allocPrint(allocator,"Hello {s}", .{buf[0..len]});
+    defer allocator.free(message);
+
+    return try e.createStringUtf8(message);
 }
 
 fn add(e: napi.Env, n1: napi.Value, n2: napi.Value) !napi.Value {
@@ -60,6 +64,21 @@ pub fn init(env: napi.Env, exports: napi.Value) !napi.Value {
 
     return exports;
 }
+#+end_src
+
+
+#+begin_src bash :results verbatim :exports both :wrap src zig
+cat examples/basic.js
+#+end_src
+
+#+RESULTS:
+#+begin_src zig
+const addon = require('../zig-out/lib/basic.node');
+const assert = require('node:assert/strict');
+
+assert.strictEqual('Hello from Zig!', addon.hello());
+assert.strictEqual('Hello John', addon.greeting('John'));
+assert.strictEqual(30, addon.add(10,20));
 #+end_src
 
 * Learning resources
