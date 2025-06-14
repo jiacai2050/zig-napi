@@ -1,22 +1,28 @@
 OUT_DIR = zig-out
 
-.PHONY: build test example lint deps clean
+.PHONY: build test example lint fix deps clean
 
 test: build
-	node tests/runner.js
+	npm test
 
 example: build
-	node examples/basic.js
+	npm run basic
 
 build:
 	zig build
 
 lint:
 	zig fmt --check .
-	cd tests && make lint
+	npm run lint
+	npm run format
+
+fix:
+	zig fmt .
+	npm run lint:fix
+	npm run format:fix
 
 deps:
-	cd tests && make deps
+	npm install
 
 clean:
 	rm -rf $(OUT_DIR)
