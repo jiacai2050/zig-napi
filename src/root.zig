@@ -185,11 +185,16 @@ pub const Env = struct {
         );
     }
 
+    /// Opens a new N-API handle scope. Handles created within this scope are automatically
+    /// released when the scope is closed via `deinit()`. It's crucial to call `deinit()`
+    /// on the returned scope, usually with `defer scope.deinit();`.
     pub fn openScope(self: Env) !scope(false) {
         return try scope(false).init(self);
     }
 
-    /// Objects in EscapeScope can be promoted to the outer scope.
+    /// Opens a new N-API escapable handle scope. This allows one handle created within
+    /// this scope to be promoted (escaped) to the outer scope. All other handles are released
+    /// when the scope is closed via `deinit()`. Ensure `deinit()` is called, typically with `defer`.
     pub fn openEscapeScope(self: Env) !scope(true) {
         return try scope(true).init(self);
     }
