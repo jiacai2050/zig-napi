@@ -18,14 +18,21 @@ pub fn callNodeApi(env: c.napi_env, c_func: anytype, args: anytype) !void {
         full_args[i] = arg;
     }
 
-    if (@call(.auto, c_func, full_args) == c.napi_ok) {
+    const ret_code = @call(.auto, c_func, full_args);
+    if (ret_code == c.napi_ok) {
         return;
     }
-
     var err_info: [*c]const c.napi_extended_error_info = null;
     if (c.napi_get_last_error_info(env, &err_info) != c.napi_ok) {
         return error.GetLastError;
     }
+
+    const msg = if (err_info) |info|
+        if (info.*.error_message == null) "Unknown error occurred" else std.mem.span(info.*.error_message)
+    else
+        "Unknown error occurred";
+
+    std.log.debug("Node-API error: {any}", .{err_info.*});
 
     var is_pending: bool = undefined;
     if (c.napi_is_exception_pending(env, &is_pending) != c.napi_ok) {
@@ -35,11 +42,6 @@ pub fn callNodeApi(env: c.napi_env, c_func: anytype, args: anytype) !void {
     if (is_pending) {
         return;
     }
-
-    const msg = if (err_info) |info|
-        if (info.*.error_message == null) "Unknown error occurred" else std.mem.span(info.*.error_message)
-    else
-        "Unknown error occurred";
 
     if (c.napi_throw_error(env, null, msg) != c.napi_ok) {
         return error.ThrowError;
