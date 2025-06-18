@@ -7,7 +7,7 @@ comptime {
 }
 
 fn hello(e: napi.Env) !napi.Value {
-    return try e.createStringValue(.utf8, "Hello from Zig!");
+    return try e.createString(.utf8, "Hello from Zig!");
 }
 
 fn greeting(e: napi.Env, who: napi.Value) !napi.Value {
@@ -17,20 +17,20 @@ fn greeting(e: napi.Env, who: napi.Value) !napi.Value {
     const message = try std.fmt.allocPrint(allocator, "Hello {s}", .{buf[0..len]});
     defer allocator.free(message);
 
-    return try e.createStringValue(.utf8, message);
+    return try e.createString(.utf8, message);
 }
 
 fn add(e: napi.Env, n1: napi.Value, n2: napi.Value) !napi.Value {
     const d1 = try n1.getValue(f64);
     const d2 = try n2.getValue(f64);
-    return try e.createValue(f64, d1 + d2);
+    return try e.create(f64, d1 + d2);
 }
 
 fn scope_demo(e: napi.Env) !napi.Value {
     for (0..100000) |i| {
         const scope = try e.openScope();
         defer scope.deinit() catch unreachable;
-        const value = try e.createValue(f64, @floatFromInt(i));
+        const value = try e.create(f64, @floatFromInt(i));
         // Do something with value, and it will get freed when scope is deinited.
         _ = value;
     }

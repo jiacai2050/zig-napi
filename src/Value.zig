@@ -156,6 +156,11 @@ pub fn createFunction(env: Env, func: anytype, comptime name: ?[]const u8) !Self
 
 /// Convert Value to primitive Zig types.
 pub fn getValue(self: Self, comptime T: type) !T {
+    if (self.c_handle == null) {
+        // Trying to get a concrete Zig type from JavaScript 'undefined'.
+        // This should be an error, as 'undefined' cannot be converted to a concrete type.
+        return error.getValueOnUndefinedValue;
+    }
     var result: T = undefined;
     switch (T) {
         f64, i64, u32, i32, bool => try callNodeApi(

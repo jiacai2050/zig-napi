@@ -9,11 +9,11 @@ const util = @import("util.zig");
 pub const Env = struct {
     c_handle: c.napi_env,
 
-    pub fn createValue(self: Env, comptime T: type, value: T) !Value {
+    pub fn create(self: Env, comptime T: type, value: T) !Value {
         return try Value.try_from(T, self, value);
     }
 
-    pub fn createStringValue(
+    pub fn createString(
         self: Env,
         comptime encoding: Value.StringEncoding,
         str: if (encoding == .utf16) []const u16 else []const u8,
@@ -21,7 +21,7 @@ pub const Env = struct {
         return try Value.createString(self, encoding, str);
     }
 
-    pub fn createObjectValue(
+    pub fn createObject(
         self: Env,
     ) !Value {
         return try Value.createObject(self);
