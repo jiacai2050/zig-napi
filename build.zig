@@ -19,20 +19,23 @@ pub fn build(b: *Build) !void {
     });
     napi_module.addSystemIncludePath(headers_dep.path("include"));
 
-    const example = b.addLibrary(.{
-        .name = "hello",
-        .root_module = b.createModule(.{
-            .root_source_file = b.path("examples/basic.zig"),
-            .optimize = optimize,
-            .target = target,
-        }),
-        .linkage = .dynamic,
-    });
-    example.root_module.addImport("napi", napi_module);
-    example.linker_allow_shlib_undefined = true;
+    // Build examples
+    inline for (.{ "basic", "array" }) |name| {
+        const example = b.addLibrary(.{
+            .name = name,
+            .root_module = b.createModule(.{
+                .root_source_file = b.path("examples/" ++ name ++ ".zig"),
+                .optimize = optimize,
+                .target = target,
+            }),
+            .linkage = .dynamic,
+        });
+        example.root_module.addImport("napi", napi_module);
+        example.linker_allow_shlib_undefined = true;
 
-    const install_lib = b.addInstallArtifact(example, .{
-        .dest_sub_path = "basic.node",
-    });
-    b.getInstallStep().dependOn(&install_lib.step);
+        const install_lib = b.addInstallArtifact(example, .{
+            .dest_sub_path = name ++ ".node",
+        });
+        b.getInstallStep().dependOn(&install_lib.step);
+    }
 }

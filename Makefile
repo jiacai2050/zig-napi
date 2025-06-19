@@ -7,6 +7,7 @@ test: build
 
 example: build
 	npm run basic
+	npm run array
 
 build:
 	zig build

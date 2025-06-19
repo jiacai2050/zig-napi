@@ -26,7 +26,7 @@ fn add(e: napi.Env, n1: napi.Value, n2: napi.Value) !napi.Value {
     return try e.create(f64, d1 + d2);
 }
 
-fn scope_demo(e: napi.Env) !napi.Value {
+fn scope_demo(e: napi.Env) !void {
     for (0..100000) |i| {
         const scope = try e.openScope();
         defer scope.deinit() catch unreachable;
@@ -34,7 +34,6 @@ fn scope_demo(e: napi.Env) !napi.Value {
         // Do something with value, and it will get freed when scope is deinited.
         _ = value;
     }
-    return .default;
 }
 
 pub fn init(env: napi.Env, exports: napi.Value) !napi.Value {

@@ -12,13 +12,8 @@ env: Env,
 
 const Self = @This();
 
-/// default represents  `undefined` object in JavaScript.
-pub const default = Self{
-    .c_handle = null,
-    .env = Env{ .c_handle = null },
-};
-
-pub fn try_from(comptime T: type, env: Env, value: T) !Self {
+/// Creates a Node-API value from a primitive Zig type.
+pub fn createFrom(comptime T: type, env: Env, value: T) !Self {
     var result: c.napi_value = undefined;
     switch (T) {
         f64, i64, u64, u32, i32 => try callNodeApi(
@@ -43,6 +38,9 @@ pub fn try_from(comptime T: type, env: Env, value: T) !Self {
     return Self{ .c_handle = result, .env = env };
 }
 
+/// Creates a Node-API value corresponding to a JavaScript `global` value.
+/// This is the global object in Node.js, which is equivalent to `globalThis` in modern JavaScript.
+/// https://nodejs.org/api/n-api.html#napi_get_global
 pub fn getGlobal(env: Env) !Self {
     var result: c.napi_value = undefined;
     try callNodeApi(
@@ -53,6 +51,8 @@ pub fn getGlobal(env: Env) !Self {
     return Self{ .c_handle = result, .env = env };
 }
 
+/// Creates a Node-API value corresponding to a JavaScript `null` value.
+/// https://nodejs.org/api/n-api.html#napi_get_null
 pub fn getNull(env: Env) !Self {
     var result: c.napi_value = undefined;
     try callNodeApi(
@@ -69,6 +69,13 @@ pub const StringEncoding = enum {
     utf16,
 };
 
+/// Creates a Node-API value corresponding to a JavaScript string.
+/// The `encoding` parameter specifies the encoding of the string.
+/// Supported encodings are `utf8`, `latin1`, and `utf16`.
+///
+/// https://nodejs.org/api/n-api.html#napi_create_string_utf8
+/// https://nodejs.org/api/n-api.html#napi_create_string_utf16
+/// https://nodejs.org/api/n-api.html#napi_create_string_latin1
 pub fn createString(
     env: Env,
     comptime encoding: StringEncoding,
@@ -97,6 +104,69 @@ pub fn createObject(env: Env) !Self {
     return Self{ .c_handle = result, .env = env };
 }
 
+/// Creates a Node-API value corresponding to a JavaScript Array with an optional length.
+/// However, the underlying buffer is not guaranteed to be pre-allocated by the VM when the array is created.
+/// That behavior is left to the underlying VM implementation.
+/// If the buffer must be a contiguous block of memory that can be directly read and/or written via C, consider using `createExternalArraybuffer`.
+///
+/// https://nodejs.org/api/n-api.html#napi_create_array
+/// https://nodejs.org/api/n-api.html#napi_create_array_with_length
+pub fn createArray(env: Env, len: ?usize) !Self {
+    var result: c.napi_value = undefined;
+    if (len) |l| {
+        try callNodeApi(
+            env.c_handle,
+            c.napi_create_array_with_length,
+            .{ l, &result },
+        );
+    } else {
+        try callNodeApi(
+            env.c_handle,
+            c.napi_create_array,
+            .{&result},
+        );
+    }
+    return Self{ .c_handle = result, .env = env };
+}
+
+/// Creates a Node-API value corresponding to a JavaScript ArrayBuffer.
+/// https://nodejs.org/api/n-api.html#napi_create_arraybuffer
+pub fn createArrayBuffer(
+    env: Env,
+    len: usize,
+    out_data: ?*?*anyopaque,
+) !Self {
+    var result: c.napi_value = undefined;
+    try callNodeApi(
+        env.c_handle,
+        c.napi_create_arraybuffer,
+        .{ len, out_data, &result },
+    );
+    return Self{ .c_handle = result, .env = env };
+}
+
+/// Creates a Node-API value corresponding to a JavaScript Date object.
+/// The `time` parameter is a timestamp in milliseconds since the epoch (January 1, 1970).
+/// https://nodejs.org/api/n-api.html#napi_create_date
+pub fn createDate(
+    env: Env,
+    time: f64,
+) !Self {
+    var result: c.napi_value = undefined;
+    try callNodeApi(
+        env.c_handle,
+        c.napi_create_date,
+        .{ time, &result },
+    );
+    return Self{ .c_handle = result, .env = env };
+}
+
+/// Creates a Node-API function that can be called from JavaScript.
+/// The `func` parameter is a Zig function that takes an `Env` as the first argument, then any number of `Value` arguments.
+/// The function can return a `Value`, `!Value`, `void`, or `!void`.
+/// The `name` parameter is an optional name for the function, which can be used for debugging purposes.
+///
+/// https://nodejs.org/api/n-api.html#napi_create_function
 pub fn createFunction(env: Env, func: anytype, comptime name: ?[]const u8) !Self {
     const fn_info = switch (@typeInfo(@TypeOf(func))) {
         .@"fn" => |fn_info| fn_info,
@@ -137,14 +207,21 @@ pub fn createFunction(env: Env, func: anytype, comptime name: ?[]const u8) !Self
                     inline for (argv, 1..) |arg, i| {
                         full_args[i] = Self{ .env = full_args[0], .c_handle = arg };
                     }
+                    const res = @call(.auto, func, full_args);
+                    if (comptime (fn_info.return_type == null or fn_info.return_type == void))
+                        return null;
                     if (comptime util.isReturnValue(fn_info))
-                        return @call(.auto, func, full_args).c_handle;
-                    const ret =
-                        @call(.auto, func, full_args) catch |err| {
-                            _ = c.napi_throw_error(c_env, null, @errorName(err));
-                            return null;
-                        };
-                    return ret.c_handle;
+                        return res.c_handle;
+                    if (comptime (util.isReturnErrValue(fn_info) or util.isReturnErrVoid(fn_info))) {
+                        const res_without_err =
+                            res catch |err| {
+                                _ = c.napi_throw_error(c_env, null, @errorName(err));
+                                return null;
+                            };
+                        return if (comptime util.isReturnErrValue(fn_info)) res_without_err.c_handle else null;
+                    } else {
+                        @compileError("Function must return `Value`, `!Value`, `void` or `!void` type");
+                    }
                 }
             }.callback,
             null,
@@ -156,11 +233,6 @@ pub fn createFunction(env: Env, func: anytype, comptime name: ?[]const u8) !Self
 
 /// Convert Value to primitive Zig types.
 pub fn getValue(self: Self, comptime T: type) !T {
-    if (self.c_handle == null) {
-        // Trying to get a concrete Zig type from JavaScript 'undefined'.
-        // This should be an error, as 'undefined' cannot be converted to a concrete type.
-        return error.getValueOnUndefinedValue;
-    }
     var result: T = undefined;
     switch (T) {
         f64, i64, u32, i32, bool => try callNodeApi(

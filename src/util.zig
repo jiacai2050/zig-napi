@@ -19,3 +19,14 @@ pub fn isReturnErrValue(fn_info: std.builtin.Type.Fn) bool {
 
     return false;
 }
+
+pub fn isReturnErrVoid(fn_info: std.builtin.Type.Fn) bool {
+    if (fn_info.return_type) |ret_type| {
+        switch (@typeInfo(ret_type)) {
+            .error_union => |err_union| return err_union.payload == void,
+            else => {},
+        }
+    }
+
+    return false;
+}
