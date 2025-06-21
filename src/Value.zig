@@ -38,8 +38,7 @@ pub fn createFrom(comptime T: type, env: Env, value: T) !Self {
     return Self{ .c_handle = result, .env = env };
 }
 
-/// Creates a Node-API value corresponding to a JavaScript `global` value.
-/// This is the global object in Node.js, which is equivalent to `globalThis` in modern JavaScript.
+/// Returns the `global` object.
 /// https://nodejs.org/api/n-api.html#napi_get_global
 pub fn getGlobal(env: Env) !Self {
     var result: c.napi_value = undefined;
@@ -51,7 +50,22 @@ pub fn getGlobal(env: Env) !Self {
     return Self{ .c_handle = result, .env = env };
 }
 
-/// Creates a Node-API value corresponding to a JavaScript `null` value.
+/// Returns the JavaScript singleton object that is used to represent the given boolean value.
+/// https://nodejs.org/api/n-api.html#napi_get_boolean
+pub fn getBoolean(
+    env: Env,
+    value: bool,
+) !Self {
+    var result: c.napi_value = undefined;
+    try callNodeApi(
+        env.c_handle,
+        c.napi_get_boolean,
+        .{ value, &result },
+    );
+    return Self{ .c_handle = result, .env = env };
+}
+
+/// Returns a Node-API value corresponding to a JavaScript `null` value.
 /// https://nodejs.org/api/n-api.html#napi_get_null
 pub fn getNull(env: Env) !Self {
     var result: c.napi_value = undefined;
@@ -274,7 +288,7 @@ pub fn getValueString(
 
 /// Describes the type of a `c.napi_value`
 /// https://nodejs.org/api/n-api.html#napi_valuetype
-const NAPIValueType = enum {
+pub const NAPIValueType = enum {
     Undefined,
     Null,
     Boolean,
@@ -326,7 +340,7 @@ pub fn typeOf(self: Self) !NAPIValueType {
         c.napi_function => NAPIValueType.Function,
         c.napi_external => NAPIValueType.External,
         c.napi_bigint => NAPIValueType.BigInt,
-        else => @compileError("Unknown napi_valuetype"),
+        else => return error.UnknownType,
     };
 }
 

@@ -86,3 +86,14 @@ describe('Object tests...', () => {
     addon.makeObject(),
   );
 });
+
+
+describe('Value coerce...', () => {
+  assert.strictEqual(123, addon.coerceStrToNumber("123"));
+  assert.strictEqual(0.123, addon.coerceStrToNumber(".123"));
+  assert.strictEqual(-0.123, addon.coerceStrToNumber("-.123"));
+
+  assert.strictEqual("123", addon.coerceNumberToStr(123));
+  assert.strictEqual("NaN", addon.coerceNumberToStr(NaN));
+  assert.strictEqual("20000000000", addon.coerceNumberToStr(2e10));
+});
