@@ -40,6 +40,45 @@ pub const Env = struct {
         return try Value.createFunction(self, func, name);
     }
 
+    /// Returns the `global` object.
+    /// https://nodejs.org/api/n-api.html#napi_get_global
+    pub fn getGlobal(env: Env) !Value {
+        var result: c.napi_value = undefined;
+        try callNodeApi(
+            env.c_handle,
+            c.napi_get_global,
+            .{&result},
+        );
+        return .{ .c_handle = result, .env = env };
+    }
+
+    /// Returns the JavaScript singleton object that is used to represent the given boolean value.
+    /// https://nodejs.org/api/n-api.html#napi_get_boolean
+    pub fn getBoolean(
+        env: Env,
+        value: bool,
+    ) !Value {
+        var result: c.napi_value = undefined;
+        try callNodeApi(
+            env.c_handle,
+            c.napi_get_boolean,
+            .{ value, &result },
+        );
+        return .{ .c_handle = result, .env = env };
+    }
+
+    /// Returns a Node-API value corresponding to a JavaScript `null` value.
+    /// https://nodejs.org/api/n-api.html#napi_get_null
+    pub fn getNull(env: Env) !Value {
+        var result: c.napi_value = undefined;
+        try callNodeApi(
+            env.c_handle,
+            c.napi_get_null,
+            .{&result},
+        );
+        return .{ .c_handle = result, .env = env };
+    }
+
     /// Opens a new N-API handle scope. Handles created within this scope are automatically
     /// released when the scope is closed via `deinit()`. It's crucial to call `deinit()`
     /// on the returned scope, usually with `defer scope.deinit();`.

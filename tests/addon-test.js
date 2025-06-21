@@ -78,10 +78,12 @@ describe('Object tests...', () => {
     {
       'str-key': 'string prop',
       'i64-key': 100,
-      'u64-key': 101,
       'i32-key': 200,
       'u32-key': 201,
       'f64-key': 300,
+      'null-key': null,
+      'true-key': true,
+      'false-key': false,
     },
     addon.makeObject(),
   );

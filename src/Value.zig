@@ -21,59 +21,19 @@ pub fn createFrom(comptime T: type, env: Env, value: T) !Self {
             switch (T) {
                 f64 => c.napi_create_double,
                 i64 => c.napi_create_int64,
-                u64 => c.napi_create_uint64,
                 u32 => c.napi_create_uint32,
                 i32 => c.napi_create_int32,
                 else => @compileError("Unsupported numeric type for conversion to napi_value"),
             },
             .{ value, &result },
         ),
-        void => return try getNull(env),
+        void => return try env.getNull(),
         []const u8 => return try createString(env, value, .utf8),
         []const u16 => return try createString(env, value, .utf16),
         c.napi_value => return Self{ .c_handle = value, .env = env },
         else => @compileError("Unsupported type for conversion to napi_value"),
     }
 
-    return Self{ .c_handle = result, .env = env };
-}
-
-/// Returns the `global` object.
-/// https://nodejs.org/api/n-api.html#napi_get_global
-pub fn getGlobal(env: Env) !Self {
-    var result: c.napi_value = undefined;
-    try callNodeApi(
-        env.c_handle,
-        c.napi_get_global,
-        .{&result},
-    );
-    return Self{ .c_handle = result, .env = env };
-}
-
-/// Returns the JavaScript singleton object that is used to represent the given boolean value.
-/// https://nodejs.org/api/n-api.html#napi_get_boolean
-pub fn getBoolean(
-    env: Env,
-    value: bool,
-) !Self {
-    var result: c.napi_value = undefined;
-    try callNodeApi(
-        env.c_handle,
-        c.napi_get_boolean,
-        .{ value, &result },
-    );
-    return Self{ .c_handle = result, .env = env };
-}
-
-/// Returns a Node-API value corresponding to a JavaScript `null` value.
-/// https://nodejs.org/api/n-api.html#napi_get_null
-pub fn getNull(env: Env) !Self {
-    var result: c.napi_value = undefined;
-    try callNodeApi(
-        env.c_handle,
-        c.napi_get_null,
-        .{&result},
-    );
     return Self{ .c_handle = result, .env = env };
 }
 
