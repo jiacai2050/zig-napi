@@ -6,11 +6,16 @@ const util = @import("util.zig");
 
 /// Env is a wrapper around the Node-API environment handle (`napi_env`).
 /// It provides methods to interact with the Node-API, such as type conversions between Zig and JavaScript values.
+/// It is used to create and manage JavaScript values, objects, and functions.
+/// The `Env` struct is typically created by the Node.js runtime and passed to the module's initialization function.
+/// It is not meant to be created directly by the user.
+///
+/// https://nodejs.org/api/n-api.html#napi_env
 pub const Env = struct {
     c_handle: c.napi_env,
 
     pub fn create(self: Env, comptime T: type, value: T) !Value {
-        return try Value.try_from(T, self, value);
+        return try Value.createFrom(T, self, value);
     }
 
     pub fn createString(
@@ -35,12 +40,43 @@ pub const Env = struct {
         return try Value.createFunction(self, func, name);
     }
 
-    pub fn setNamedProperty(self: Env, exports: Value, name: [:0]const u8, prop: Value) !void {
+    /// Returns the `global` object.
+    /// https://nodejs.org/api/n-api.html#napi_get_global
+    pub fn getGlobal(env: Env) !Value {
+        var result: c.napi_value = undefined;
         try callNodeApi(
-            self.c_handle,
-            c.napi_set_named_property,
-            .{ exports.c_handle, name.ptr, prop.c_handle },
+            env.c_handle,
+            c.napi_get_global,
+            .{&result},
         );
+        return .{ .c_handle = result, .env = env };
+    }
+
+    /// Returns the JavaScript singleton object that is used to represent the given boolean value.
+    /// https://nodejs.org/api/n-api.html#napi_get_boolean
+    pub fn getBoolean(
+        env: Env,
+        value: bool,
+    ) !Value {
+        var result: c.napi_value = undefined;
+        try callNodeApi(
+            env.c_handle,
+            c.napi_get_boolean,
+            .{ value, &result },
+        );
+        return .{ .c_handle = result, .env = env };
+    }
+
+    /// Returns a Node-API value corresponding to a JavaScript `null` value.
+    /// https://nodejs.org/api/n-api.html#napi_get_null
+    pub fn getNull(env: Env) !Value {
+        var result: c.napi_value = undefined;
+        try callNodeApi(
+            env.c_handle,
+            c.napi_get_null,
+            .{&result},
+        );
+        return .{ .c_handle = result, .env = env };
     }
 
     /// Opens a new N-API handle scope. Handles created within this scope are automatically
@@ -58,9 +94,12 @@ pub const Env = struct {
     }
 };
 
-/// `init_fn` is a function that will be called when the module is initialized.
-/// It should have the signature `fn(env: Env, exports: Value)`
-/// It can return `Value` or `!Value`.
+/// Registers a module with the Node.js runtime.
+///
+/// The `init_fn` will be called with the `Env` and `exports` arguments.
+/// The `exports` argument is the object that will be returned from the module.
+/// It can be used to create functions, objects, or other values that will be accessible from JavaScript.
+/// The `init_fn` must return a `Value` or `!Value`. If it returns `!Value`, any error will be thrown as a JavaScript exception.
 pub fn registerModule(init_fn: anytype) void {
     const Closure = struct {
         fn init(c_env: c.napi_env, c_exports: c.napi_value) callconv(.C) c.napi_value {

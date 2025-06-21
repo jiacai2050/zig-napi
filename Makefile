@@ -6,7 +6,7 @@ test: build
 	npm test
 
 example: build
-	npm run basic
+	node examples/hello.js
 
 build:
 	zig build
