@@ -1,6 +1,6 @@
 #+TITLE: zig-napi
 #+DATE: 2025-06-10T21:55:37+0800
-#+LASTMOD: 2025-06-21T17:17:45+0800
+#+LASTMOD: 2025-06-21T22:41:59+0800
 #+AUTHOR: Jiacai Liu
 
 [[https://github.com/jiacai2050/zig-napi/actions/workflows/CI.yml][https://github.com/jiacai2050/zig-napi/actions/workflows/CI.yml/badge.svg]]
@@ -53,7 +53,8 @@ cat examples/hello.js
 const addon = require('../zig-out/lib/hello.node');
 const assert = require('node:assert/strict');
 
-assert.strictEqual('Hello John', addon.hello('John'));
+assert.strictEqual('Hello Tom', addon.hello('Tom'));
+assert.strictEqual('Hello Jack', addon.hello('Jack'));
 #+end_src
 
 More examples can be found in [[file:tests/][tests]] directory.
