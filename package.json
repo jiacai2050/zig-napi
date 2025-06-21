@@ -7,8 +7,6 @@
   },
   "scripts": {
     "test": "node --test",
-    "basic": "node examples/basic.js",
-    "array": "node examples/array.js",
     "lint": "eslint",
     "lint:fix": "npm run lint -- --fix",
     "format": "prettier . --check",

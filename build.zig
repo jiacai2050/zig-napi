@@ -19,12 +19,16 @@ pub fn build(b: *Build) !void {
     });
     napi_module.addSystemIncludePath(headers_dep.path("include"));
 
-    // Build examples
-    inline for (.{ "basic", "array" }) |name| {
+    // Build examples/tests
+    inline for (.{
+        FileInput{ .example = "hello" },
+        FileInput{ .@"test" = "main" },
+    }) |file| {
+        const name = comptime file.name();
         const example = b.addLibrary(.{
             .name = name,
             .root_module = b.createModule(.{
-                .root_source_file = b.path("examples/" ++ name ++ ".zig"),
+                .root_source_file = b.path(comptime file.path()),
                 .optimize = optimize,
                 .target = target,
             }),
@@ -39,3 +43,22 @@ pub fn build(b: *Build) !void {
         b.getInstallStep().dependOn(&install_lib.step);
     }
 }
+
+const FileInput = union(enum) {
+    example: []const u8,
+    @"test": []const u8,
+
+    fn name(self: FileInput) []const u8 {
+        return switch (self) {
+            .example => |n| n,
+            .@"test" => |n| n,
+        };
+    }
+
+    fn path(self: FileInput) []const u8 {
+        return switch (self) {
+            .example => |n| "examples/" ++ n ++ ".zig",
+            .@"test" => |n| "tests/" ++ n ++ ".zig",
+        };
+    }
+};

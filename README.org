@@ -1,6 +1,6 @@
 #+TITLE: zig-napi
 #+DATE: 2025-06-10T21:55:37+0800
-#+LASTMOD: 2025-06-21T12:33:25+0800
+#+LASTMOD: 2025-06-21T17:17:45+0800
 #+AUTHOR: Jiacai Liu
 
 [[https://github.com/jiacai2050/zig-napi/actions/workflows/CI.yml][https://github.com/jiacai2050/zig-napi/actions/workflows/CI.yml/badge.svg]]
@@ -10,7 +10,7 @@
 
 * Examples
 #+begin_src bash :results verbatim :exports both :wrap src zig
-cat examples/basic.zig
+cat examples/hello.zig
 #+end_src
 
 #+RESULTS:
@@ -23,11 +23,7 @@ comptime {
     napi.registerModule(init);
 }
 
-fn hello(e: napi.Env) !napi.Value {
-    return try e.createString(.utf8, "Hello from Zig!");
-}
-
-fn greeting(e: napi.Env, who: napi.Value) !napi.Value {
+fn hello(e: napi.Env, who: napi.Value) !napi.Value {
     var buf: [64]u8 = undefined;
     const len = try who.getValueString(.utf8, &buf);
     const allocator = std.heap.page_allocator;
@@ -37,62 +33,27 @@ fn greeting(e: napi.Env, who: napi.Value) !napi.Value {
     return try e.createString(.utf8, message);
 }
 
-fn add(e: napi.Env, n1: napi.Value, n2: napi.Value) !napi.Value {
-    const d1 = try n1.getValue(f64);
-    const d2 = try n2.getValue(f64);
-    return try e.create(f64, d1 + d2);
-}
-
-fn scope_demo(e: napi.Env) !void {
-    for (0..100000) |i| {
-        const scope = try e.openScope();
-        defer scope.deinit() catch unreachable;
-        const value = try e.create(f64, @floatFromInt(i));
-        // Do something with value, and it will get freed when scope is deinited.
-        _ = value;
-    }
-}
-
 pub fn init(env: napi.Env, exports: napi.Value) !napi.Value {
     try exports.setNamedProperty(
         "hello",
         try env.createFunction(hello, null),
     );
 
-    try exports.setNamedProperty(
-        "greeting",
-        try env.createFunction(greeting, null),
-    );
-
-    try exports.setNamedProperty(
-        "add",
-        try env.createFunction(add, null),
-    );
-
-    try exports.setNamedProperty(
-        "scope_demo",
-        try env.createFunction(scope_demo, null),
-    );
     return exports;
 }
 #+end_src
 
 
 #+begin_src bash :results verbatim :exports both :wrap src zig
-cat examples/basic.js
+cat examples/hello.js
 #+end_src
 
 #+RESULTS:
 #+begin_src zig
-const addon = require('../zig-out/lib/basic.node');
+const addon = require('../zig-out/lib/hello.node');
 const assert = require('node:assert/strict');
 
-assert.strictEqual('Hello from Zig!', addon.hello());
-assert.strictEqual('Hello John', addon.greeting('John'));
-assert.strictEqual(30, addon.add(10, 20));
+assert.strictEqual('Hello John', addon.hello('John'));
 #+end_src
 
-* Learning resources
-- [[https://github.com/ziglang/zig/issues/3000][Zig and Node.js N-API example · Issue #3000 · ziglang/zig]]
-- [[https://github.com/evanwashere/napi.zig/blob/master/src/napi/napi.zig][napi.zig/src/napi/napi.zig at master · evanwashere/napi.zig]]
-- [[https://ziggit.dev/t/cross-compiling-a-node-js-addon-for-windows-macos/1935][Cross compiling a Node.js addon for windows / macOS - Help - Ziggit]]
+More examples can be found in [[file:tests/][tests]] directory.
