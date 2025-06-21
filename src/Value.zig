@@ -291,7 +291,7 @@ pub fn coerceTo(
     self: Self,
     comptime value_type: NAPIValueType,
 ) !Self {
-    var result: bool = false;
+    var result: c.napi_value = undefined;
     try callNodeApi(
         self.env.c_handle,
         switch (value_type) {
