@@ -21,8 +21,7 @@ fn arraybuffer_demo(
 }
 
 pub fn init(env: napi.Env, exports: napi.Value) !napi.Value {
-    try env.setNamedProperty(
-        exports,
+    try exports.setNamedProperty(
         "arraybuffer_demo",
         try env.createFunction(arraybuffer_demo, null),
     );

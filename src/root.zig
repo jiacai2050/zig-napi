@@ -40,14 +40,6 @@ pub const Env = struct {
         return try Value.createFunction(self, func, name);
     }
 
-    pub fn setNamedProperty(self: Env, exports: Value, name: [:0]const u8, prop: Value) !void {
-        try callNodeApi(
-            self.c_handle,
-            c.napi_set_named_property,
-            .{ exports.c_handle, name.ptr, prop.c_handle },
-        );
-    }
-
     /// Opens a new N-API handle scope. Handles created within this scope are automatically
     /// released when the scope is closed via `deinit()`. It's crucial to call `deinit()`
     /// on the returned scope, usually with `defer scope.deinit();`.

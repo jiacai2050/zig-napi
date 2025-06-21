@@ -37,26 +37,22 @@ fn scope_demo(e: napi.Env) !void {
 }
 
 pub fn init(env: napi.Env, exports: napi.Value) !napi.Value {
-    try env.setNamedProperty(
-        exports,
+    try exports.setNamedProperty(
         "hello",
         try env.createFunction(hello, null),
     );
 
-    try env.setNamedProperty(
-        exports,
+    try exports.setNamedProperty(
         "greeting",
         try env.createFunction(greeting, null),
     );
 
-    try env.setNamedProperty(
-        exports,
+    try exports.setNamedProperty(
         "add",
         try env.createFunction(add, null),
     );
 
-    try env.setNamedProperty(
-        exports,
+    try exports.setNamedProperty(
         "scope_demo",
         try env.createFunction(scope_demo, null),
     );

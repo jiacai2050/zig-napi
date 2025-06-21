@@ -271,3 +271,313 @@ pub fn getValueString(
     );
     return len;
 }
+
+/// Describes the type of a `c.napi_value`
+/// https://nodejs.org/api/n-api.html#napi_valuetype
+const NAPIValueType = enum {
+    Undefined,
+    Null,
+    Boolean,
+    Number,
+    String,
+    Symbol,
+    Object,
+    Function,
+    External,
+    BigInt,
+};
+
+pub fn coerceTo(
+    self: Self,
+    comptime value_type: NAPIValueType,
+) !Self {
+    var result: bool = false;
+    try callNodeApi(
+        self.env.c_handle,
+        switch (value_type) {
+            .Boolean => c.napi_coerce_to_bool,
+            .Number => c.napi_coerce_to_number,
+            .String => c.napi_coerce_to_string,
+            .Object => c.napi_coerce_to_object,
+            else => @compileError("Unsupported JavaScript type for coercion"),
+        },
+        .{ self.c_handle, &result },
+    );
+
+    return Self{ .c_handle = result, .env = self.env };
+}
+
+pub fn typeOf(self: Self) !NAPIValueType {
+    var result: c.napi_valuetype = undefined;
+    try callNodeApi(
+        self.env.c_handle,
+        c.napi_typeof,
+        .{ self.c_handle, &result },
+    );
+
+    return switch (result) {
+        c.napi_undefined => NAPIValueType.Undefined,
+        c.napi_null => NAPIValueType.Null,
+        c.napi_boolean => NAPIValueType.Boolean,
+        c.napi_number => NAPIValueType.Number,
+        c.napi_string => NAPIValueType.String,
+        c.napi_symbol => NAPIValueType.Symbol,
+        c.napi_object => NAPIValueType.Object,
+        c.napi_function => NAPIValueType.Function,
+        c.napi_external => NAPIValueType.External,
+        c.napi_bigint => NAPIValueType.BigInt,
+        else => @compileError("Unknown napi_valuetype"),
+    };
+}
+
+pub fn isArray(self: Self) !bool {
+    var result: bool = false;
+    try callNodeApi(
+        self.env.c_handle,
+        c.napi_is_array,
+        .{ self.c_handle, &result },
+    );
+    return result;
+}
+
+pub fn isArrayBuffer(self: Self) !bool {
+    var result: bool = false;
+    try callNodeApi(
+        self.env.c_handle,
+        c.napi_is_arraybuffer,
+        .{ self.c_handle, &result },
+    );
+    return result;
+}
+
+pub fn isBuffer(self: Self) !bool {
+    var result: bool = false;
+    try callNodeApi(
+        self.env.c_handle,
+        c.napi_is_buffer,
+        .{ self.c_handle, &result },
+    );
+    return result;
+}
+
+pub fn isDate(self: Self) !bool {
+    var result: bool = false;
+    try callNodeApi(
+        self.env.c_handle,
+        c.napi_is_date,
+        .{ self.c_handle, &result },
+    );
+    return result;
+}
+
+pub fn isError(self: Self) !bool {
+    var result: bool = false;
+    try callNodeApi(
+        self.env.c_handle,
+        c.napi_is_error,
+        .{ self.c_handle, &result },
+    );
+    return result;
+}
+
+pub fn isTypedArray(self: Self) !bool {
+    var result: bool = false;
+    try callNodeApi(
+        self.env.c_handle,
+        c.napi_is_typedarray,
+        .{ self.c_handle, &result },
+    );
+    return result;
+}
+
+pub fn isDataView(self: Self) !bool {
+    var result: bool = false;
+    try callNodeApi(
+        self.env.c_handle,
+        c.napi_is_dataview,
+        .{ self.c_handle, &result },
+    );
+    return result;
+}
+
+pub fn strictEquals(self: Self, other: Self) !bool {
+    var result: bool = false;
+    try callNodeApi(
+        self.env.c_handle,
+        c.napi_strict_equals,
+        .{ self.c_handle, other.c_handle, &result },
+    );
+    return result;
+}
+
+// APIs below are used to get and set properties on JavaScript objects.
+
+/// This API set a property on the Object passed in.
+/// The `object` must be a JavaScript object, and `name` is the name of the property.
+/// https://nodejs.org/api/n-api.html#napi_set_named_property
+pub fn setNamedProperty(self: Self, name: [:0]const u8, prop: Self) !void {
+    try callNodeApi(
+        self.env.c_handle,
+        c.napi_set_named_property,
+        .{ self.c_handle, name.ptr, prop.c_handle },
+    );
+}
+
+/// This API gets a property from the Object passed in.
+/// The `object` must be a JavaScript object, and `name` is the name of the property.
+/// https://nodejs.org/api/n-api.html#napi_get_named_property
+pub fn getNamedProperty(self: Self, name: [:0]const u8) !Self {
+    var result: c.napi_value = undefined;
+    try callNodeApi(
+        self.env.c_handle,
+        c.napi_get_named_property,
+        .{ self.c_handle, name.ptr, &result },
+    );
+    return Self{ .c_handle = result, .env = self.env };
+}
+
+/// This API checks if the Object passed in has a property with the given name.
+/// The `object` must be a JavaScript object, and `name` is the name of the property.
+/// https://nodejs.org/api/n-api.html#napi_has_named_property
+pub fn hasNamedProperty(self: Self, name: [:0]const u8) !bool {
+    var result: bool = false;
+    try callNodeApi(
+        self.env.c_handle,
+        c.napi_has_named_property,
+        .{ self.c_handle, name.ptr, &result },
+    );
+    return result;
+}
+
+/// This API deletes a property from the Object passed in.
+/// The `object` must be a JavaScript object, and `name` is the name of the property.
+/// https://nodejs.org/api/n-api.html#napi_delete_property
+pub fn deleteNamedProperty(
+    self: Self,
+    name: [:0]const u8,
+) !bool {
+    const obj_key = try Self.createString(self.env, .utf8, name);
+    var result: bool = false;
+    try callNodeApi(
+        self.env.c_handle,
+        c.napi_delete_property,
+        .{ self.c_handle, obj_key.c_handle, &result },
+    );
+    return result;
+}
+
+/// This API checks if the Object passed in has its own property with the given name.
+pub fn hasOwnProperty(
+    self: Self,
+    name: [:0]const u8,
+) !bool {
+    const obj_key = try Self.createString(self.env, .utf8, name);
+    var result: bool = false;
+    try callNodeApi(
+        self.env.c_handle,
+        c.napi_has_own_property,
+        .{ self.c_handle, obj_key.c_handle, &result },
+    );
+    return result;
+}
+
+/// This API sets an element on the Object passed in.
+/// The `object` must be a JavaScript object, and `index` is the numeric index of the property.
+/// https://nodejs.org/api/n-api.html#napi_set_element
+pub fn setElement(
+    self: Self,
+    index: u32,
+    prop: Self,
+) !void {
+    try callNodeApi(
+        self.env.c_handle,
+        c.napi_set_element,
+        .{ self.c_handle, index, prop.c_handle },
+    );
+}
+
+/// This API gets an element from the Object passed in.
+/// The `object` must be a JavaScript object, and `index` is the numeric index of the property.
+pub fn getElement(
+    self: Self,
+    index: u32,
+) !Self {
+    var result: c.napi_value = undefined;
+    try callNodeApi(
+        self.env.c_handle,
+        c.napi_get_element,
+        .{ self.c_handle, index, &result },
+    );
+    return Self{ .c_handle = result, .env = self.env };
+}
+
+/// This API checks if the Object passed in has an element at the given index.
+/// The `object` must be a JavaScript object, and `index` is the numeric index of the property.
+/// https://nodejs.org/api/n-api.html#napi_has_element
+pub fn hasElement(
+    self: Self,
+    index: u32,
+) !bool {
+    var result: bool = false;
+    try callNodeApi(
+        self.env.c_handle,
+        c.napi_has_element,
+        .{ self.c_handle, index, &result },
+    );
+    return result;
+}
+
+/// This API deletes an element from the Object passed in.
+/// The `object` must be a JavaScript object, and `index` is the numeric index of the property.
+/// https://nodejs.org/api/n-api.html#napi_delete_element
+pub fn deleteElement(
+    self: Self,
+    index: u32,
+) !bool {
+    var result: bool = false;
+    try callNodeApi(
+        self.env.c_handle,
+        c.napi_delete_element,
+        .{ self.c_handle, index, &result },
+    );
+    return result;
+}
+
+/// This method freezes a given object.
+/// This prevents new properties from being added to it, existing properties from being removed,
+/// prevents changing the enumerability, configurability, or writability of existing properties,
+/// and prevents the values of existing properties from being changed.
+/// It also prevents the object's prototype from being changed.
+/// https://nodejs.org/api/n-api.html#napi_object_freeze
+pub fn objectFreeze(self: Self) !void {
+    try callNodeApi(
+        self.env.c_handle,
+        c.napi_object_freeze,
+        .{self.c_handle},
+    );
+}
+
+/// This method seals a given object.
+/// This prevents new properties from being added to it, as well as marking all existing properties as non-configurable.
+/// https://nodejs.org/api/n-api.html#napi_object_seal
+pub fn objectSeal(self: Self) !void {
+    try callNodeApi(
+        self.env.c_handle,
+        c.napi_object_seal,
+        .{self.c_handle},
+    );
+}
+
+// APIs below are used to get and set properties on JavaScript arrays.
+
+/// This API gets an element on the Array passed in.
+/// https://nodejs.org/api/n-api.html#napi_get_array_length
+pub fn getArrayLength(self: Self) !u32 {
+    var result: u32 = 0;
+    try callNodeApi(
+        self.env.c_handle,
+        c.napi_get_array_length,
+        .{ self.c_handle, &result },
+    );
+    return result;
+}
