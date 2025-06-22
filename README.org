@@ -1,13 +1,21 @@
 #+TITLE: zig-napi
 #+DATE: 2025-06-10T21:55:37+0800
-#+LASTMOD: 2025-06-21T22:41:59+0800
+#+LASTMOD: 2025-06-22T11:20:50+0800
 #+AUTHOR: Jiacai Liu
 
 [[https://github.com/jiacai2050/zig-napi/actions/workflows/CI.yml][https://github.com/jiacai2050/zig-napi/actions/workflows/CI.yml/badge.svg]]
 [[https://img.shields.io/badge/zig%20version-0.14.1-blue.svg]]
 
-[[https://nodejs.org/api/n-api.html][Node-API]] bindings for Zig.
+=zig-napi= is a Zig package that provides a set of bindings to the
+[[https://nodejs.org/api/n-api.html][Node-API]] (N-API) for Zig. It allows you to write native Node.js addons in Zig, enabling you to leverage Zig's performance and safety features while interacting with Node.js.
 
+* Features
+- Provides a safe and ergonomic API for writing Node.js addons in Zig.
+- Supports both synchronous and asynchronous operations(TODO).
+- Includes comprehensive error handling and type safety.
+- Supports the latest N-API features.
+- Comprehensive documentation and examples to help you get started quickly.
+- Supports Zig's compile-time features for better performance and safety.
 * Examples
 #+begin_src bash :results verbatim :exports both :wrap src zig
 cat examples/hello.zig
@@ -57,4 +65,42 @@ assert.strictEqual('Hello Tom', addon.hello('Tom'));
 assert.strictEqual('Hello Jack', addon.hello('Jack'));
 #+end_src
 
-More examples can be found in [[file:tests/][tests]] directory.
+More usages can be found in [[file:tests/][tests]] directory.
+* Installation
+To install zig-napi, you can use Zig's package manager. Run the following command in your terminal:
+
+#+begin_src bash
+zig fetch --save https://github.com/jiacai2050/zig-napi/archive/${COMMIT_ID}.zip
+#+end_src
+Replace =${COMMIT_ID}= with the commit ID you want to use. Then in your =build.zig=, you can add the dependency like this:
+
+#+begin_src zig
+const name = "napi-demo";
+const addon = b.addLibrary(.{
+    .name = name,
+    .root_module = b.createModule(.{
+        .root_source_file = b.path("src/root.zig"),
+        .optimize = optimize,
+        .target = target,
+    }),
+    .linkage = .dynamic,
+});
+
+const dep_napi = b.dependency("napi", .{});
+addon.root_module.addImport("napi", dep_napi.module("napi"));
+addon.linker_allow_shlib_undefined = true;
+const install_lib = b.addInstallArtifact(addon, .{
+    .dest_sub_path = name ++ ".node",
+});
+b.getInstallStep().dependOn(&install_lib.step);
+#+end_src
+
+Finally, require the addon in your Node.js code:
+#+begin_src javascript
+const addon = require('./zig-out/lib/napi-demo.node');
+
+// Do awesome thing with addon
+#+end_src
+
+* License
+This project is licensed under [[file:LICENSE][the MIT License]].

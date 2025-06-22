@@ -1,5 +1,5 @@
-//! `Value` is a wrapper around the Node-API environment handle (`napi_value`).
-//! It provides methods to interact with the Node-API, such as type conversions between Zig and JavaScript values.
+//! `Value` is a wrapper around the Node-API value type (`c.napi_value`).
+//! It represents a JavaScript value in the Node.js environment(aka c.napi_value`) and is used to interact with JavaScript objects, arrays, functions, and other types.
 
 const std = @import("std");
 const c = @import("c.zig").c;
@@ -16,7 +16,7 @@ const Self = @This();
 pub fn createFrom(comptime T: type, env: Env, value: T) !Self {
     var result: c.napi_value = undefined;
     switch (T) {
-        f64, i64, u64, u32, i32 => try callNodeApi(
+        f64, i64, u32, i32 => try callNodeApi(
             env.c_handle,
             switch (T) {
                 f64 => c.napi_create_double,
@@ -27,6 +27,7 @@ pub fn createFrom(comptime T: type, env: Env, value: T) !Self {
             },
             .{ value, &result },
         ),
+        bool => return try env.getBoolean(value),
         void => return try env.getNull(),
         []const u8 => return try createString(env, value, .utf8),
         []const u16 => return try createString(env, value, .utf16),
