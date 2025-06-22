@@ -1,6 +1,6 @@
 OUT_DIR = zig-out
 
-.PHONY: build test example lint fix deps clean
+.PHONY: build test example lint fix deps docs clean
 
 test: build
 	npm test
@@ -20,6 +20,9 @@ fix:
 	zig fmt .
 	npm run lint:fix
 	npm run format:fix
+
+docs:
+	zig build docs
 
 deps:
 	npm install

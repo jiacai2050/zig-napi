@@ -1,12 +1,16 @@
+//! zig-napi - A Zig wrapper for Node.js N-API, providing a type-safe interface to create and manipulate JavaScript values.
 const std = @import("std");
 const c = @import("c.zig").c;
 const callNodeApi = @import("c.zig").callNodeApi;
-pub const Value = @import("Value.zig");
 const util = @import("util.zig");
+pub const Value = @import("Value.zig");
 
 /// Env is a wrapper around the Node-API environment handle (`napi_env`).
-/// It provides methods to interact with the Node-API, such as type conversions between Zig and JavaScript values.
-/// It is used to create and manage JavaScript values, objects, and functions.
+/// It provides methods to interact with the Node-API, such as
+/// - Creating JavaScript values (strings, objects, functions)
+/// - Accessing global objects and primitive values (like `null`, `undefined`, and `boolean`).
+/// - Managing handle scopes for memory management.
+///
 /// The `Env` struct is typically created by the Node.js runtime and passed to the module's initialization function.
 /// It is not meant to be created directly by the user.
 ///
@@ -14,10 +18,12 @@ const util = @import("util.zig");
 pub const Env = struct {
     c_handle: c.napi_env,
 
+    /// Creates `Value` from a Zig type `T`.
     pub fn create(self: Env, comptime T: type, value: T) !Value {
         return try Value.createFrom(T, self, value);
     }
 
+    /// Creates a string `Value` with given encoding and content.
     pub fn createString(
         self: Env,
         comptime encoding: Value.StringEncoding,
@@ -26,18 +32,40 @@ pub const Env = struct {
         return try Value.createString(self, encoding, str);
     }
 
+    /// Creates an empty JavaScript object.
     pub fn createObject(
         self: Env,
     ) !Value {
         return try Value.createObject(self);
     }
 
+    /// Creates a JavaScript function from a Zig function.
+    /// The `func` argument should be a function that matches the expected signature.
+    /// `fn(Env, ...args: Values) !Value` is a common signature for such functions.
+    /// `void` or `!void` is also a valid return type, indicating the function does not return a value.
+    /// The `name` argument is optional and can be used to set the function's name in JavaScript.
     pub fn createFunction(
         self: Env,
         func: anytype,
         comptime name: ?[]const u8,
     ) !Value {
         return try Value.createFunction(self, func, name);
+    }
+
+    /// Creates a JavaScript Error with the text provided.
+    /// https://nodejs.org/api/n-api.html#napi_create_error
+    pub fn createError(
+        self: Env,
+        code: ?Value,
+        message: Value,
+    ) !Value {
+        var result: c.napi_value = undefined;
+        try callNodeApi(
+            self.c_handle,
+            c.napi_create_error,
+            .{ if (code) |v| v.c_handle else null, message.c_handle, &result },
+        );
+        return .{ .c_handle = result, .env = self };
     }
 
     /// Returns the `global` object.
@@ -88,9 +116,37 @@ pub const Env = struct {
 
     /// Opens a new N-API escapable handle scope. This allows one handle created within
     /// this scope to be promoted (escaped) to the outer scope. All other handles are released
-    /// when the scope is closed via `deinit()`. Ensure `deinit()` is called, typically with `defer`.
+    /// when the scope is closed via `deinit()`.
+    /// Note: ensure `deinit()` is called, typically with `defer`.
     pub fn openEscapeScope(self: Env) !scope(true) {
         return try scope(true).init(self);
+    }
+
+    /// Throws the JavaScript value provided.
+    /// https://nodejs.org/api/n-api.html#napi_throw
+    pub fn throw(
+        self: Env,
+        err: Value,
+    ) !void {
+        try callNodeApi(
+            self.c_handle,
+            c.napi_throw,
+            .{err.c_handle},
+        );
+    }
+
+    /// Throws a JavaScript Error with the text provided.
+    /// https://nodejs.org/api/n-api.html#napi_throw_error
+    pub fn throwError(
+        self: Env,
+        code: ?[:0]const u8,
+        message: [:0]const u8,
+    ) !void {
+        try callNodeApi(
+            self.c_handle,
+            c.napi_throw_error,
+            .{ code, message },
+        );
     }
 };
 
@@ -129,12 +185,17 @@ pub fn registerModule(init_fn: anytype) void {
     @export(&Closure.init, .{ .name = "napi_register_module_v1" });
 }
 
+/// Scope is a context in which JavaScript values can be created and manipulated.
+/// It is used to manage the lifetime of JavaScript values and ensure they are properly garbage collected.
+///
+/// https://nodejs.org/api/n-api.html#object-lifetime-management
 fn scope(comptime escape: bool) type {
     return struct {
         env: Env,
         c_handle: if (escape) c.napi_escapable_handle_scope else c.napi_handle_scope,
 
         const Self = @This();
+
         pub fn init(env: Env) !Self {
             var self = Self{ .c_handle = undefined, .env = env };
             try callNodeApi(
@@ -144,6 +205,21 @@ fn scope(comptime escape: bool) type {
             );
 
             return self;
+        }
+
+        /// This API promotes the handle to the JavaScript object so that it is valid for the lifetime of the outer scope.
+        /// It can only be called once per scope. If it is called more than once an error will be returned.
+        /// https://nodejs.org/api/n-api.html#napi_escape_handle
+        pub fn escapeHandle(self: Self, value: Value) !Value {
+            if (!escape) @compileError("Cannot escape value in a non-escapable handle scope");
+
+            var result: c.napi_value = undefined;
+            try callNodeApi(
+                self.env.c_handle,
+                c.napi_escape_handle,
+                .{ self.c_handle, value.c_handle, &result },
+            );
+            return .{ .c_handle = result, .env = self.env };
         }
 
         pub fn deinit(self: Self) !void {

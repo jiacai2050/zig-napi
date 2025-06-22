@@ -16,12 +16,16 @@ pub fn makeArrayBuffer(
     return array_buffer;
 }
 
+/// When iterates over an array, it creates a new scope for each item.
+/// This is useful to ensure that the items are properly cleaned up after use, since only the most recent item is used.
 pub fn visitArrayInScope(env: napi.Env, arr: napi.Value) !napi.Value {
     const len = try arr.getArrayLength();
     var sum: u32 = 0;
     for (0..len) |i| {
         const scope = try env.openScope();
-        defer scope.deinit() catch unreachable;
+        defer scope.deinit() catch |err| {
+            std.log.err("Deinit scope failed, err:{any}", .{err});
+        };
         const item = try arr.getElement(@intCast(i));
         sum += try item.getValue(u32);
     }
