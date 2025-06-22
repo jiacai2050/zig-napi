@@ -63,7 +63,7 @@ pub const Env = struct {
         try callNodeApi(
             self.c_handle,
             c.napi_create_error,
-            .{ if (code) |c| c.c_handle else null, message.c_handle, &result },
+            .{ if (code) |v| v.c_handle else null, message.c_handle, &result },
         );
         return .{ .c_handle = result, .env = self };
     }

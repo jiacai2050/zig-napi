@@ -19,6 +19,21 @@ pub fn build(b: *Build) !void {
     });
     napi_module.addSystemIncludePath(headers_dep.path("include"));
 
+    // Build docs
+    const doc_object = b.addObject(.{
+        .name = "napi_docs",
+        .root_module = napi_module,
+        .optimize = optimize,
+    });
+    doc_object.root_module.addImport("napi", napi_module);
+    const docs_step = b.step("docs", "Generate docs");
+    const docs_install = b.addInstallDirectory(.{
+        .source_dir = doc_object.getEmittedDocs(),
+        .install_dir = .prefix,
+        .install_subdir = "docs",
+    });
+    docs_step.dependOn(&docs_install.step);
+
     // Build examples/tests
     inline for (.{
         FileInput{ .example = "hello" },

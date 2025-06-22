@@ -249,7 +249,7 @@ pub fn getValueString(
 
 /// Describes the type of a `c.napi_value`
 /// https://nodejs.org/api/n-api.html#napi_valuetype
-pub const NAPIValueType = enum {
+pub const ValueType = enum {
     Undefined,
     Null,
     Boolean,
@@ -264,7 +264,7 @@ pub const NAPIValueType = enum {
 
 pub fn coerceTo(
     self: Self,
-    comptime value_type: NAPIValueType,
+    comptime value_type: ValueType,
 ) !Self {
     var result: c.napi_value = undefined;
     try callNodeApi(
@@ -282,7 +282,7 @@ pub fn coerceTo(
     return Self{ .c_handle = result, .env = self.env };
 }
 
-pub fn typeOf(self: Self) !NAPIValueType {
+pub fn typeOf(self: Self) !ValueType {
     var result: c.napi_valuetype = undefined;
     try callNodeApi(
         self.env.c_handle,
@@ -291,16 +291,16 @@ pub fn typeOf(self: Self) !NAPIValueType {
     );
 
     return switch (result) {
-        c.napi_undefined => NAPIValueType.Undefined,
-        c.napi_null => NAPIValueType.Null,
-        c.napi_boolean => NAPIValueType.Boolean,
-        c.napi_number => NAPIValueType.Number,
-        c.napi_string => NAPIValueType.String,
-        c.napi_symbol => NAPIValueType.Symbol,
-        c.napi_object => NAPIValueType.Object,
-        c.napi_function => NAPIValueType.Function,
-        c.napi_external => NAPIValueType.External,
-        c.napi_bigint => NAPIValueType.BigInt,
+        c.napi_undefined => ValueType.Undefined,
+        c.napi_null => ValueType.Null,
+        c.napi_boolean => ValueType.Boolean,
+        c.napi_number => ValueType.Number,
+        c.napi_string => ValueType.String,
+        c.napi_symbol => ValueType.Symbol,
+        c.napi_object => ValueType.Object,
+        c.napi_function => ValueType.Function,
+        c.napi_external => ValueType.External,
+        c.napi_bigint => ValueType.BigInt,
         else => return error.UnknownType,
     };
 }
