@@ -1,6 +1,6 @@
 #+TITLE: zig-napi
 #+DATE: 2025-06-10T21:55:37+0800
-#+LASTMOD: 2025-06-22T11:20:50+0800
+#+LASTMOD: 2025-06-22T13:39:44+0800
 #+AUTHOR: Jiacai Liu
 
 [[https://github.com/jiacai2050/zig-napi/actions/workflows/CI.yml][https://github.com/jiacai2050/zig-napi/actions/workflows/CI.yml/badge.svg]]
@@ -31,17 +31,17 @@ comptime {
     napi.registerModule(init);
 }
 
-fn hello(e: napi.Env, who: napi.Value) !napi.Value {
+fn hello(env: napi.Env, who: napi.Value) !napi.Value {
     var buf: [64]u8 = undefined;
     const len = try who.getValueString(.utf8, &buf);
     const allocator = std.heap.page_allocator;
     const message = try std.fmt.allocPrint(allocator, "Hello {s}", .{buf[0..len]});
     defer allocator.free(message);
 
-    return try e.createString(.utf8, message);
+    return try env.createString(.utf8, message);
 }
 
-pub fn init(env: napi.Env, exports: napi.Value) !napi.Value {
+fn init(env: napi.Env, exports: napi.Value) !napi.Value {
     try exports.setNamedProperty(
         "hello",
         try env.createFunction(hello, null),
@@ -67,14 +67,16 @@ assert.strictEqual('Hello Jack', addon.hello('Jack'));
 
 More usages can be found in [[file:tests/][tests]] directory.
 * Installation
-To install zig-napi, you can use Zig's package manager. Run the following command in your terminal:
+With Zig's package manager, you can easily install zig-napi and use it in your Zig projects.
+- First, run the following command in your terminal, replace =${COMMIT_ID}= with the commit ID you want to use.
 
-#+begin_src bash
+  #+begin_src bash
 zig fetch --save https://github.com/jiacai2050/zig-napi/archive/${COMMIT_ID}.zip
-#+end_src
-Replace =${COMMIT_ID}= with the commit ID you want to use. Then in your =build.zig=, you can add the dependency like this:
+  #+end_src
 
-#+begin_src zig
+- Then in your =build.zig=, you can add the following code to include the package:
+
+  #+begin_src zig
 const name = "napi-demo";
 const addon = b.addLibrary(.{
     .name = name,
@@ -93,14 +95,14 @@ const install_lib = b.addInstallArtifact(addon, .{
     .dest_sub_path = name ++ ".node",
 });
 b.getInstallStep().dependOn(&install_lib.step);
-#+end_src
+  #+end_src
 
-Finally, require the addon in your Node.js code:
-#+begin_src javascript
+- Finally, require the addon in your Node.js code:
+  #+begin_src javascript
 const addon = require('./zig-out/lib/napi-demo.node');
 
 // Do awesome thing with addon
-#+end_src
+  #+end_src
 
 * License
 This project is licensed under [[file:LICENSE][the MIT License]].

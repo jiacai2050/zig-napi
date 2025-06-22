@@ -36,14 +36,16 @@ pub fn build(b: *Build) !void {
 
     // Build examples/tests
     inline for (.{
-        FileInput{ .example = "hello" },
-        FileInput{ .@"test" = "main" },
-    }) |file| {
-        const name = comptime file.name();
+        // (dir, name)
+        .{ .examples, "hello" },
+        .{ .tests, "main" },
+    }) |input| {
+        const dir, const name = input;
+        const path = std.fmt.comptimePrint("{s}/{s}.zig", .{ @tagName(dir), name });
         const example = b.addLibrary(.{
             .name = name,
             .root_module = b.createModule(.{
-                .root_source_file = b.path(comptime file.path()),
+                .root_source_file = b.path(path),
                 .optimize = optimize,
                 .target = target,
             }),
@@ -58,22 +60,3 @@ pub fn build(b: *Build) !void {
         b.getInstallStep().dependOn(&install_lib.step);
     }
 }
-
-const FileInput = union(enum) {
-    example: []const u8,
-    @"test": []const u8,
-
-    fn name(self: FileInput) []const u8 {
-        return switch (self) {
-            .example => |n| n,
-            .@"test" => |n| n,
-        };
-    }
-
-    fn path(self: FileInput) []const u8 {
-        return switch (self) {
-            .example => |n| "examples/" ++ n ++ ".zig",
-            .@"test" => |n| "tests/" ++ n ++ ".zig",
-        };
-    }
-};
