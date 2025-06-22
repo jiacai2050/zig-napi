@@ -1,8 +1,9 @@
 import js from '@eslint/js';
 import globals from 'globals';
-import { defineConfig } from 'eslint/config';
+import { defineConfig, globalIgnores } from 'eslint/config';
 
 export default defineConfig([
+  globalIgnores(['zig-out', '.zig-cache']),
   {
     files: ['**/*.{js,mjs,cjs}'],
     plugins: { js },
