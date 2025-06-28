@@ -32,7 +32,7 @@ pub fn callNodeApi(env: c.napi_env, c_func: anytype, args: anytype) !void {
     else
         "Unknown error occurred";
 
-    if (err_info) |info_ptr| std.log.debug("Node-API error: {any}", .{info_ptr.*});
+    if (err_info) |info_ptr| std.log.debug("Node-API error: {s}, code:{d}", .{ msg, info_ptr.*.error_code });
 
     var is_pending: bool = undefined;
     if (c.napi_is_exception_pending(env, &is_pending) != c.napi_ok) {
