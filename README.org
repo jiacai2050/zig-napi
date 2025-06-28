@@ -1,6 +1,6 @@
 #+TITLE: zig-napi
 #+DATE: 2025-06-10T21:55:37+0800
-#+LASTMOD: 2025-06-28T11:20:00+0800
+#+LASTMOD: 2025-06-28T12:07:51+0800
 #+AUTHOR: Jiacai Liu
 
 [[https://github.com/jiacai2050/zig-napi/actions/workflows/CI.yml][https://github.com/jiacai2050/zig-napi/actions/workflows/CI.yml/badge.svg]]
@@ -68,7 +68,7 @@ assert.strictEqual('Hello Jack', addon.hello('Jack'));
 More usages can be found in [[file:tests/][tests]] directory.
 * Installation
 With Zig's package manager, you can easily install zig-napi and use it in your Zig projects.
-- First, run the following command in your terminal, replace ={TAG_OR_COMMIT_ID}= with the tag/commit you want to use.
+- First, run the following command in your terminal, replace ={TAG_OR_COMMIT_ID}= with a specific tag or commit ID from the repository.
 
   #+begin_src bash
 zig fetch --save git+https://github.com/jiacai2050/zig-napi#{TAG_OR_COMMIT_ID}

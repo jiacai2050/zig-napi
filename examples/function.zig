@@ -4,6 +4,9 @@ const std = @import("std");
 pub fn callAddTwoNumbers(env: napi.Env, num: napi.Value) !napi.Value {
     const global = try env.getGlobal();
     const add_two = try global.getNamedProperty("AddTwo");
+    if ((try add_two.typeOf()) != .Function) {
+        return error.TypeError;
+    }
     const args = [_]napi.Value{num};
     return add_two.callFunction(args.len, global, args);
 }

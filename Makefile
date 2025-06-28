@@ -7,6 +7,7 @@ test: build
 
 example: build
 	node examples/hello.js
+	node examples/function.js
 
 build:
 	zig build
