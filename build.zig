@@ -38,6 +38,7 @@ pub fn build(b: *Build) !void {
     inline for (.{
         // (dir, name)
         .{ .examples, "hello" },
+        .{ .examples, "function" },
         .{ .tests, "main" },
     }) |input| {
         const dir, const name = input;

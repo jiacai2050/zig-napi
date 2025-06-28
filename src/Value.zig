@@ -29,8 +29,8 @@ pub fn createFrom(comptime T: type, env: Env, value: T) !Self {
         ),
         bool => return try env.getBoolean(value),
         void => return try env.getNull(),
-        []const u8 => return try createString(env, value, .utf8),
-        []const u16 => return try createString(env, value, .utf16),
+        []const u8 => return try createString(env, .utf8, value),
+        []const u16 => return try createString(env, .utf16, value),
         c.napi_value => return Self{ .c_handle = value, .env = env },
         else => @compileError("Unsupported type for conversion to napi_value"),
     }
@@ -555,4 +555,36 @@ pub fn getArrayLength(self: Self) !u32 {
         .{ self.c_handle, &result },
     );
     return result;
+}
+
+// APIs below are used to work with JavaScript functions.
+
+/// Calls a JavaScript function.
+/// The `this_arg` parameter is the value to use as `this` when calling the function.
+/// The `args` parameter is an array of arguments to pass to the function.
+///
+/// https://nodejs.org/api/n-api.html#napi_call_function
+pub fn callFunction(
+    self: Self,
+    comptime argc: usize,
+    this_arg: ?Self,
+    args: [argc]Self,
+) !Self {
+    var result: c.napi_value = undefined;
+    var argv: [argc]c.napi_value = undefined;
+    for (&argv, args) |*c_arg, zig_arg| {
+        c_arg.* = zig_arg.c_handle;
+    }
+    try callNodeApi(
+        self.env.c_handle,
+        c.napi_call_function,
+        .{
+            if (this_arg) |this| this.c_handle else null,
+            self.c_handle,
+            argv.len,
+            &argv,
+            &result,
+        },
+    );
+    return Self{ .c_handle = result, .env = self.env };
 }
