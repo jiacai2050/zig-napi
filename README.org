@@ -1,10 +1,10 @@
 #+TITLE: zig-napi
 #+DATE: 2025-06-10T21:55:37+0800
-#+LASTMOD: 2025-06-28T12:07:51+0800
+#+LASTMOD: 2025-09-30T13:02:21+0800
 #+AUTHOR: Jiacai Liu
 
 [[https://github.com/jiacai2050/zig-napi/actions/workflows/CI.yml][https://github.com/jiacai2050/zig-napi/actions/workflows/CI.yml/badge.svg]]
-[[https://img.shields.io/badge/zig%20version-0.14.1-blue.svg]]
+[[https://img.shields.io/badge/zig%20version-0.15.1-blue.svg]]
 
 =zig-napi= is a Zig package that provides a set of bindings to the
 [[https://nodejs.org/api/n-api.html][Node-API]] (N-API) for Zig. It allows you to write native Node.js addons in Zig, enabling you to leverage Zig's performance and safety features while interacting with Node.js.

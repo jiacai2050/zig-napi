@@ -162,7 +162,7 @@ pub fn createFunction(env: Env, func: anytype, comptime name: ?[]const u8) !Self
             if (name) |n| n.ptr else null,
             if (name) |n| n.len else 0,
             struct {
-                fn callback(c_env: c.napi_env, info: c.napi_callback_info) callconv(.C) c.napi_value {
+                fn callback(c_env: c.napi_env, info: c.napi_callback_info) callconv(.c) c.napi_value {
                     var argc: usize = num_params;
                     var argv: [num_params]c.napi_value = undefined;
                     callNodeApi(

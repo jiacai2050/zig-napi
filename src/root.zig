@@ -158,7 +158,7 @@ pub const Env = struct {
 /// The `init_fn` must return a `Value` or `!Value`. If it returns `!Value`, any error will be thrown as a JavaScript exception.
 pub fn registerModule(init_fn: anytype) void {
     const Closure = struct {
-        fn init(c_env: c.napi_env, c_exports: c.napi_value) callconv(.C) c.napi_value {
+        fn init(c_env: c.napi_env, c_exports: c.napi_value) callconv(.c) c.napi_value {
             const fn_info = switch (@typeInfo(@TypeOf(init_fn))) {
                 .@"fn" => |fn_info| fn_info,
                 else => @compileError("`init_fn` must be a function"),

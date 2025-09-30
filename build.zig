@@ -8,7 +8,7 @@ pub fn build(b: *Build) !void {
     const target = b.standardTargetOptions(.{});
     const optimize = b.standardOptimizeOption(.{});
 
-    const napi_module = b.createModule(.{
+    const napi_module = b.addModule("napi", .{
         .root_source_file = b.path("src/root.zig"),
         .optimize = optimize,
         .target = target,
@@ -23,7 +23,6 @@ pub fn build(b: *Build) !void {
     const doc_object = b.addObject(.{
         .name = "napi_docs",
         .root_module = napi_module,
-        .optimize = optimize,
     });
     doc_object.root_module.addImport("napi", napi_module);
     const docs_step = b.step("docs", "Generate docs");
@@ -49,10 +48,10 @@ pub fn build(b: *Build) !void {
                 .root_source_file = b.path(path),
                 .optimize = optimize,
                 .target = target,
+                .imports = &.{.{ .name = "napi", .module = napi_module }},
             }),
             .linkage = .dynamic,
         });
-        example.root_module.addImport("napi", napi_module);
         example.linker_allow_shlib_undefined = true;
 
         const install_lib = b.addInstallArtifact(example, .{
