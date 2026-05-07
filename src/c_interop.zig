@@ -1,7 +1,5 @@
 const std = @import("std");
-pub const c = @cImport({
-    @cInclude("node_api.h");
-});
+pub const c = @import("c");
 
 pub const Value = c.napi_value;
 

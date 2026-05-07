@@ -1,8 +1,8 @@
 .{
     .name = .napi,
-    .version = "0.2.0",
+    .version = "0.3.0",
     .fingerprint = 0xa8f95e310539e3c0,
-    .minimum_zig_version = "0.15.1",
+    .minimum_zig_version = "0.16.0",
     .paths = .{
         "src",
         "build.zig",
@@ -11,9 +11,9 @@
     },
     .dependencies = .{
         .napi_headers = .{
-            // https://github.com/nodejs/node-api-headers/releases/tag/v1.5.0
-            .url = "https://github.com/nodejs/node-api-headers/archive/refs/tags/v1.5.0.zip",
-            .hash = "N-V-__8AAASNAQA0UI0mvQk4LyFEhdFuFBPgH8HSokdFFpnz",
+            // https://github.com/nodejs/node-api-headers/releases/tag/v1.8.0
+            .url = "git+https://github.com/nodejs/node-api-headers.git?ref=v1.8.0#d41aa272949bb5e5ef477b87d2d565fd67a03f32",
+            .hash = "N-V-__8AAG-QAQAFFTumO7UyvrANtzv0ApXLnJ9Kskt5VmVQ",
         },
     },
 }

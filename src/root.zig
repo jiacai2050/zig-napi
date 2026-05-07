@@ -1,7 +1,7 @@
 //! zig-napi - A Zig wrapper for Node.js N-API, providing a type-safe interface to create and manipulate JavaScript values.
 const std = @import("std");
-const c = @import("c.zig").c;
-const callNodeApi = @import("c.zig").callNodeApi;
+const c = @import("c_interop.zig").c;
+const callNodeApi = @import("c_interop.zig").callNodeApi;
 const util = @import("util.zig");
 pub const Value = @import("Value.zig");
 

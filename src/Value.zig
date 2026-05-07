@@ -2,8 +2,8 @@
 //! It represents a JavaScript value in the Node.js environment(aka c.napi_value`) and is used to interact with JavaScript objects, arrays, functions, and other types.
 
 const std = @import("std");
-const c = @import("c.zig").c;
-const callNodeApi = @import("c.zig").callNodeApi;
+const c = @import("c_interop.zig").c;
+const callNodeApi = @import("c_interop.zig").callNodeApi;
 const Env = @import("root.zig").Env;
 const util = @import("util.zig");
 

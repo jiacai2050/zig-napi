@@ -8,16 +8,26 @@ pub fn build(b: *Build) !void {
     const target = b.standardTargetOptions(.{});
     const optimize = b.standardOptimizeOption(.{});
 
-    const napi_module = b.addModule("napi", .{
-        .root_source_file = b.path("src/root.zig"),
-        .optimize = optimize,
-        .target = target,
-    });
     const headers_dep = b.dependency("napi_headers", .{
         .optimize = optimize,
         .target = target,
     });
-    napi_module.addSystemIncludePath(headers_dep.path("include"));
+
+    const translate_c = b.addTranslateC(.{
+        .root_source_file = headers_dep.path("include/node_api.h"),
+        .target = target,
+        .optimize = optimize,
+    });
+    translate_c.addSystemIncludePath(headers_dep.path("include"));
+
+    const napi_module = b.addModule("napi", .{
+        .root_source_file = b.path("src/root.zig"),
+        .optimize = optimize,
+        .target = target,
+        .imports = &.{
+            .{ .name = "c", .module = translate_c.createModule() },
+        },
+    });
 
     // Build docs
     const doc_object = b.addObject(.{
